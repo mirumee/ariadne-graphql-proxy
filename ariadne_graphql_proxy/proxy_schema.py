@@ -269,9 +269,29 @@ def get_proxy_object_field_arg(types_map, arg):
             get_proxy_object_field_arg(types_map, arg["ofType"])
         )
 
+    if arg["kind"] == "LIST":
+        return GraphQLList(
+            get_proxy_object_field_arg(types_map, arg["ofType"])
+        )
+
     if arg["kind"] == "INPUT_OBJECT":
         return types_map[arg["name"]]
     
+    if arg["kind"] == "ENUM":
+        return types_map[arg["name"]]
+
+    if arg["kind"] == "SCALAR":
+        if arg["name"] == "ID":
+            return GraphQLID
+        if arg["name"] == "Int":
+            return GraphQLInt
+        if arg["name"] == "String":
+            return GraphQLString
+        if arg["name"] == "Float":
+            return GraphQLFloat
+        if arg["name"] == "Boolean":
+            return GraphQLBoolean
+
     raise Exception(arg)
 
 

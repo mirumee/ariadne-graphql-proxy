@@ -93,6 +93,7 @@ INTROSPECTION_QUERY = gql(
                                 }
                             }
                         }
+                        defaultValue
                     }
                 }
                 inputFields {
@@ -117,6 +118,7 @@ INTROSPECTION_QUERY = gql(
                             }
                         }
                     }
+                    defaultValue
                 }
                 enumValues {
                     name
@@ -254,11 +256,12 @@ def get_proxy_object_field(types_map, field_type):
 def get_proxy_object_field_args(types_map, args_data):
     if not args_data:
         return None
-
     args = {}
     for arg in args_data:
+        print(arg["name"], arg["defaultValue"])
         args[arg["name"]] = GraphQLArgument(
-            get_proxy_object_field_arg(types_map, arg["type"])
+            get_proxy_object_field_arg(types_map, arg["type"]),
+            default_value=arg["defaultValue"],
         )
     return args
 
@@ -311,7 +314,10 @@ def get_proxy_interface_type(types_map, type_data):
 def get_proxy_input_type(types_map, type_data):
     def thunk():
         return {
-            field["name"]: GraphQLInputField(get_proxy_object_field(types_map, field["type"]))
+            field["name"]: GraphQLInputField(
+                get_proxy_object_field(types_map, field["type"]),
+                default_value=field["defaultValue"],
+            )
             for field in type_data["inputFields"]
         }
 

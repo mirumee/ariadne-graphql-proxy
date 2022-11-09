@@ -1,4 +1,5 @@
+from .copy_schema import copy_schema
 from .proxy_resolver import setup_root_resolver
-from .proxy_schema import make_proxy_schema
+from .remote_schema import GraphQLRemoteSchema
 
-__all__ = ["make_proxy_schema", "setup_root_resolver"]
+__all__ = ["GraphQLRemoteSchema", "copy_schema", "setup_root_resolver"]

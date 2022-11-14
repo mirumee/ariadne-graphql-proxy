@@ -1,4 +1,5 @@
-from dataclasses import field
+from typing import Dict, List, Optional
+
 from graphql import (
     GraphQLArgument,
     GraphQLBoolean,
@@ -13,6 +14,7 @@ from graphql import (
     GraphQLNamedType,
     GraphQLNonNull,
     GraphQLObjectType,
+    GraphQLScalarType,
     GraphQLSchema,
     GraphQLString,
 )
@@ -20,7 +22,13 @@ from graphql import (
 from .standard_types import STANDARD_TYPES
 
 
-def copy_schema(schema: GraphQLSchema) -> GraphQLSchema:
+def copy_schema(
+    schema: GraphQLSchema,
+    *,
+    exclude_types: Optional[List[str]] = None,
+    exclude_args: Optional[Dict[str, List[str]]] = None,
+    exclude_fields: Optional[Dict[str, List[str]]] = None,
+) -> GraphQLSchema:
     new_types = copy_schema_types(schema)
 
     query_type = None
@@ -52,6 +60,13 @@ def copy_schema_types(schema: GraphQLSchema):
 
         if isinstance(graphql_type, GraphQLInputObjectType):
             new_types[graphql_type.name] = copy_input_type(new_types, graphql_type)
+
+        if isinstance(graphql_type, GraphQLScalarType):
+            new_types[graphql_type.name] = copy_scalar_type(graphql_type)
+
+        # Union
+        # Interface
+        # Directive
 
     return new_types
 
@@ -191,3 +206,17 @@ def copy_input_field(new_types, field_type):
 
     if isinstance(field_type, GraphQLNamedType):
         return new_types[field_type.name]
+
+
+def copy_scalar_type(scalar):
+    return GraphQLScalarType(
+        name=scalar.name,
+        serialize=scalar.serialize,
+        parse_value=scalar.parse_value,
+        parse_literal=scalar.parse_literal,
+        description=scalar.description,
+        specified_by_url=scalar.specified_by_url,
+        extensions=scalar.extensions,
+        ast_node=scalar.ast_node,
+        extension_ast_nodes=scalar.extension_ast_nodes,
+    )

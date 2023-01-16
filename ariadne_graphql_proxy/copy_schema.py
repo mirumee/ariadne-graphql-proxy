@@ -1,8 +1,9 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from graphql import (
     GraphQLArgument,
     GraphQLBoolean,
+    GraphQLDirective,
     GraphQLEnumType,
     GraphQLField,
     GraphQLFloat,
@@ -45,6 +46,7 @@ def copy_schema(
         query=query_type,
         mutation=mutation_type,
         types=new_types.values(),
+        directives=copy_directives(new_types, schema.directives),
     )
 
 
@@ -100,7 +102,7 @@ def copy_object_type(new_types, graphql_type):
 def copy_field(new_types, graphql_field):
     return GraphQLField(
         copy_field_type(new_types, graphql_field.type),
-        copy_object_field_args(new_types, graphql_field.args),
+        copy_arguments(new_types, graphql_field.args),
         graphql_field.resolve,
         graphql_field.subscribe,
         graphql_field.description,
@@ -135,13 +137,13 @@ def copy_field_type(new_types, field_type):
     raise Exception(f"Unknown field type: {repr(field_type)}")
 
 
-def copy_object_field_args(new_types, field_args):
+def copy_arguments(new_types, field_args):
     if field_args == {}:
         return {}
 
     return {
         arg_name: GraphQLArgument(
-            copy_object_field_arg(new_types, arg.type),
+            copy_argument_type(new_types, arg.type),
             default_value=arg.default_value,
             description=arg.description,
             deprecation_reason=arg.deprecation_reason,
@@ -151,12 +153,12 @@ def copy_object_field_args(new_types, field_args):
     }
 
 
-def copy_object_field_arg(new_types, arg):
+def copy_argument_type(new_types, arg):
     if isinstance(arg, GraphQLList):
-        return GraphQLList(copy_object_field_arg(new_types, arg.of_type))
+        return GraphQLList(copy_argument_type(new_types, arg.of_type))
 
     if isinstance(arg, GraphQLNonNull):
-        return GraphQLNonNull(copy_object_field_arg(new_types, arg.of_type))
+        return GraphQLNonNull(copy_argument_type(new_types, arg.of_type))
 
     if arg == GraphQLBoolean:
         return GraphQLBoolean
@@ -248,3 +250,20 @@ def copy_union_type(new_types: dict, union_type: GraphQLUnionType) -> GraphQLUni
         return [new_types[subtype.name] for subtype in union_type.types]
 
     return GraphQLUnionType(name=union_type.name, types=thunk)
+
+
+def copy_directives(
+    new_types: dict, directives: Tuple[GraphQLDirective, ...]
+) -> Tuple[GraphQLDirective, ...]:
+    return tuple(copy_directive(new_types, directive) for directive in directives)
+
+
+def copy_directive(new_types: dict, directive: GraphQLDirective) -> GraphQLDirective:
+    return GraphQLDirective(
+        name=directive.name,
+        locations=directive.locations,
+        args=copy_arguments(new_types, directive.args),
+        is_repeatable=directive.is_repeatable,
+        description=directive.description,
+        extensions=directive.extensions.copy() if directive.extensions else {},
+    )

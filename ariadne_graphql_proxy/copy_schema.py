@@ -18,6 +18,7 @@ from graphql import (
     GraphQLScalarType,
     GraphQLSchema,
     GraphQLString,
+    GraphQLUnionType,
 )
 
 from .standard_types import STANDARD_TYPES
@@ -67,6 +68,9 @@ def copy_schema_types(schema: GraphQLSchema):
 
         if isinstance(graphql_type, GraphQLInterfaceType):
             new_types[graphql_type.name] = copy_interface_type(new_types, graphql_type)
+
+        if isinstance(graphql_type, GraphQLUnionType):
+            new_types[graphql_type.name] = copy_union_type(new_types, graphql_type)
 
     return new_types
 
@@ -237,3 +241,10 @@ def copy_interface_type(
         name=interface_type.name,
         fields=thunk,
     )
+
+
+def copy_union_type(new_types: dict, union_type: GraphQLUnionType) -> GraphQLUnionType:
+    def thunk():
+        return [new_types[subtype.name] for subtype in union_type.types]
+
+    return GraphQLUnionType(name=union_type.name, types=thunk)

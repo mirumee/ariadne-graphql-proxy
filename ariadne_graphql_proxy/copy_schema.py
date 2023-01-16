@@ -10,6 +10,7 @@ from graphql import (
     GraphQLInputField,
     GraphQLInputObjectType,
     GraphQLInt,
+    GraphQLInterfaceType,
     GraphQLList,
     GraphQLNamedType,
     GraphQLNonNull,
@@ -64,9 +65,8 @@ def copy_schema_types(schema: GraphQLSchema):
         if isinstance(graphql_type, GraphQLScalarType):
             new_types[graphql_type.name] = copy_scalar_type(graphql_type)
 
-        # Union
-        # Interface
-        # Directive
+        if isinstance(graphql_type, GraphQLInterfaceType):
+            new_types[graphql_type.name] = copy_interface_type(new_types, graphql_type)
 
     return new_types
 
@@ -83,7 +83,7 @@ def copy_enum_type(graphql_type):
 def copy_object_type(new_types, graphql_type):
     def thunk():
         return {
-            field_name: copy_object_field(new_types, field)
+            field_name: copy_field(new_types, field)
             for field_name, field in graphql_type.fields.items()
         }
 
@@ -93,9 +93,9 @@ def copy_object_type(new_types, graphql_type):
     )
 
 
-def copy_object_field(new_types, graphql_field):
+def copy_field(new_types, graphql_field):
     return GraphQLField(
-        copy_object_field_type(new_types, graphql_field.type),
+        copy_field_type(new_types, graphql_field.type),
         copy_object_field_args(new_types, graphql_field.args),
         graphql_field.resolve,
         graphql_field.subscribe,
@@ -105,12 +105,12 @@ def copy_object_field(new_types, graphql_field):
     )
 
 
-def copy_object_field_type(new_types, field_type):
+def copy_field_type(new_types, field_type):
     if isinstance(field_type, GraphQLList):
-        return GraphQLList(copy_object_field_type(new_types, field_type.of_type))
+        return GraphQLList(copy_field_type(new_types, field_type.of_type))
 
     if isinstance(field_type, GraphQLNonNull):
-        return GraphQLNonNull(copy_object_field_type(new_types, field_type.of_type))
+        return GraphQLNonNull(copy_field_type(new_types, field_type.of_type))
 
     if field_type == GraphQLBoolean:
         return GraphQLBoolean
@@ -123,7 +123,9 @@ def copy_object_field_type(new_types, field_type):
     if field_type == GraphQLInt:
         return GraphQLInt
 
-    if isinstance(field_type, (GraphQLEnumType, GraphQLObjectType)):
+    if isinstance(
+        field_type, (GraphQLEnumType, GraphQLObjectType, GraphQLInterfaceType)
+    ):
         return new_types[field_type.name]
 
     raise Exception(f"Unknown field type: {repr(field_type)}")
@@ -219,4 +221,19 @@ def copy_scalar_type(scalar):
         extensions=scalar.extensions,
         ast_node=scalar.ast_node,
         extension_ast_nodes=scalar.extension_ast_nodes,
+    )
+
+
+def copy_interface_type(
+    new_types: dict, interface_type: GraphQLInterfaceType
+) -> GraphQLInterfaceType:
+    def thunk():
+        return {
+            field_name: copy_field(new_types, field)
+            for field_name, field in interface_type.fields.items()
+        }
+
+    return GraphQLInterfaceType(
+        name=interface_type.name,
+        fields=thunk,
     )

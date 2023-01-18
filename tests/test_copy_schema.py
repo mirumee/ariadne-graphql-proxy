@@ -221,6 +221,38 @@ def test_copy_schema_raises_exception_if_excluded_type_is_used_by_not_excluded_e
         copy_schema(schema, exclude_types=["TestTypeA"])
 
 
+def test_copy_schema_doesnt_raise_exception_if_type_is_excluded_with_fields_of_type(
+    gql,
+):
+    schema_str = gql(
+        """
+        schema {
+            query: Query
+        }
+
+        type Query {
+            testQuery: TestTypeA!
+        }
+
+        type TestTypeA {
+            fieldA: Int!
+            fieldB: TestTypeB!
+        }
+
+        type TestTypeB {
+            id: ID!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copy_schema(
+        schema,
+        exclude_types=["TestTypeB"],
+        exclude_fields={"TestTypeA": ["fieldB"]},
+    )
+
+
 @pytest.mark.parametrize(
     "graphql_type, expected_method_name",
     [
@@ -295,6 +327,23 @@ def test_copy_enum_type_returns_new_enum_with_the_same_values():
     assert copied_type.extensions == graphql_type.extensions
 
 
+def test_copy_enum_type_returns_new_enum_without_excluded_fields():
+    graphql_type = GraphQLEnumType(
+        name="EnumType",
+        values={
+            "VAL1": GraphQLEnumValue(value="VAL1"),
+            "VAL2": GraphQLEnumValue(value="VAL2"),
+            "VAL3": GraphQLEnumValue(value="VAL3"),
+        },
+    )
+
+    copied_type = copy_enum_type(graphql_type, ["VAL1"])
+
+    assert isinstance(copied_type, GraphQLEnumType)
+    assert copied_type is not graphql_type
+    assert "VAL1" not in copied_type.values
+
+
 def test_copy_object_type_returns_new_object_with_fields():
     related_type = GraphQLObjectType(
         name="TypeB", fields={"val": GraphQLField(type_=GraphQLString)}
@@ -321,6 +370,22 @@ def test_copy_object_type_returns_new_object_with_fields():
     assert copied_type.fields["fieldB"] is not graphql_type.fields["fieldB"]
     assert isinstance(copied_type.fields["fieldB"], GraphQLField)
     assert copied_type.fields["fieldB"].type == duplicated_related_type
+
+
+def test_copy_object_type_returns_new_object_without_excluded_fields():
+    graphql_type = GraphQLObjectType(
+        name="TypeName",
+        fields={
+            "fieldA": GraphQLField(type_=GraphQLString),
+            "fieldB": GraphQLField(type_=GraphQLInt),
+        },
+    )
+
+    copied_type = copy_object_type({}, graphql_type, ["fieldB"])
+
+    assert isinstance(copied_type, GraphQLObjectType)
+    assert copied_type is not graphql_type
+    assert "fieldB" not in copied_type.fields
 
 
 def test_copy_field_returns_new_object():
@@ -589,6 +654,23 @@ def test_copy_input_type():
     assert copied_input_type.fields["field2"].type == duplicated_related_field_type
 
 
+def test_copy_input_type_returns_input_without_excluded_fields():
+
+    input_type = GraphQLInputObjectType(
+        name="InputType",
+        fields={
+            "field1": GraphQLInputField(type_=GraphQLFloat),
+            "field2": GraphQLInputField(type_=GraphQLBoolean),
+        },
+    )
+
+    copied_input_type = copy_input_type({}, input_type, ["field2"])
+
+    assert isinstance(copied_input_type, GraphQLInputObjectType)
+    assert copied_input_type is not input_type
+    assert "field2" not in copied_input_type.fields
+
+
 @pytest.mark.parametrize(
     "field_type, expected",
     [
@@ -677,6 +759,23 @@ def test_copy_interface_type_returns_new_object_with_fields():
     assert copied_type.fields["fieldB"] is not graphql_type.fields["fieldB"]
     assert isinstance(copied_type.fields["fieldB"], GraphQLField)
     assert copied_type.fields["fieldB"].type == duplicated_related_type
+
+
+def test_copy_interface_type_returns_new_interface_without_excluded_fields():
+
+    graphql_type = GraphQLInterfaceType(
+        name="TypeName",
+        fields={
+            "fieldA": GraphQLField(type_=GraphQLString),
+            "fieldB": GraphQLField(type_=GraphQLID),
+        },
+    )
+
+    copied_type = copy_interface_type({}, graphql_type, ["fieldB"])
+
+    assert isinstance(copied_type, GraphQLInterfaceType)
+    assert copied_type is not graphql_type
+    assert "fieldB" not in copied_type.fields
 
 
 def test_copy_union_type_returns_copy_of_union_with_copies_of_subtypes():

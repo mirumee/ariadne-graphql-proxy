@@ -33,7 +33,9 @@ def copy_schema(
     exclude_args: Optional[Dict[str, List[str]]] = None,
     exclude_fields: Optional[Dict[str, List[str]]] = None,
 ) -> GraphQLSchema:
-    new_types = copy_schema_types(schema, exclude_types=exclude_types)
+    new_types = copy_schema_types(
+        schema, exclude_types=exclude_types, exclude_fields=exclude_fields
+    )
 
     query_type = None
     if schema.query_type:
@@ -56,27 +58,44 @@ def copy_schema(
 def copy_schema_types(
     schema: GraphQLSchema,
     exclude_types: Optional[List[str]] = None,
+    exclude_fields: Optional[Dict[str, List[str]]] = None,
 ):
     exclude_types = exclude_types if exclude_types is not None else []
+    exclude_fields = exclude_fields if exclude_fields is not None else {}
     new_types = {}
     for graphql_type in schema.type_map.values():
         if graphql_type.name in STANDARD_TYPES or graphql_type.name in exclude_types:
             continue
 
         if isinstance(graphql_type, GraphQLEnumType):
-            new_types[graphql_type.name] = copy_enum_type(graphql_type)
+            new_types[graphql_type.name] = copy_enum_type(
+                graphql_type,
+                object_exclude_fields=exclude_fields.get(graphql_type.name),
+            )
 
         if isinstance(graphql_type, GraphQLObjectType):
-            new_types[graphql_type.name] = copy_object_type(new_types, graphql_type)
+            new_types[graphql_type.name] = copy_object_type(
+                new_types,
+                graphql_type,
+                object_exclude_fields=exclude_fields.get(graphql_type.name),
+            )
 
         if isinstance(graphql_type, GraphQLInputObjectType):
-            new_types[graphql_type.name] = copy_input_type(new_types, graphql_type)
+            new_types[graphql_type.name] = copy_input_type(
+                new_types,
+                graphql_type,
+                object_exclude_fields=exclude_fields.get(graphql_type.name),
+            )
 
         if isinstance(graphql_type, GraphQLScalarType):
             new_types[graphql_type.name] = copy_scalar_type(graphql_type)
 
         if isinstance(graphql_type, GraphQLInterfaceType):
-            new_types[graphql_type.name] = copy_interface_type(new_types, graphql_type)
+            new_types[graphql_type.name] = copy_interface_type(
+                new_types,
+                graphql_type,
+                object_exclude_fields=exclude_fields.get(graphql_type.name),
+            )
 
         if isinstance(graphql_type, GraphQLUnionType):
             new_types[graphql_type.name] = copy_union_type(
@@ -86,20 +105,32 @@ def copy_schema_types(
     return new_types
 
 
-def copy_enum_type(graphql_type):
+def copy_enum_type(graphql_type, object_exclude_fields: Optional[List[str]] = None):
+    object_exclude_fields = (
+        object_exclude_fields if object_exclude_fields is not None else []
+    )
+    values = {
+        name: val
+        for name, val in graphql_type.values.items()
+        if name not in object_exclude_fields
+    }
     return GraphQLEnumType(
         graphql_type.name,
-        graphql_type.values,
+        values,
         description=graphql_type.description,
         extensions=graphql_type.extensions,
     )
 
 
-def copy_object_type(new_types, graphql_type):
+def copy_object_type(
+    new_types, graphql_type, object_exclude_fields: Optional[List[str]] = None
+):
     def thunk():
+        fields_to_exclude = object_exclude_fields if object_exclude_fields else []
         return {
             field_name: copy_field(new_types, field)
             for field_name, field in graphql_type.fields.items()
+            if field_name not in fields_to_exclude
         }
 
     return GraphQLObjectType(
@@ -184,8 +215,11 @@ def copy_argument_type(new_types, arg):
         return new_types[arg.name]
 
 
-def copy_input_type(new_types, graphql_type):
+def copy_input_type(
+    new_types, graphql_type, object_exclude_fields: Optional[List[str]] = None
+):
     def thunk():
+        fields_to_exclude = object_exclude_fields if object_exclude_fields else []
         return {
             field_name: GraphQLInputField(
                 copy_input_field_type(new_types, field.type),
@@ -195,6 +229,7 @@ def copy_input_type(new_types, graphql_type):
                 out_name=field.out_name,
             )
             for field_name, field in graphql_type.fields.items()
+            if field_name not in fields_to_exclude
         }
 
     return GraphQLInputObjectType(
@@ -240,12 +275,16 @@ def copy_scalar_type(scalar):
 
 
 def copy_interface_type(
-    new_types: dict, interface_type: GraphQLInterfaceType
+    new_types: dict,
+    interface_type: GraphQLInterfaceType,
+    object_exclude_fields: Optional[List[str]] = None,
 ) -> GraphQLInterfaceType:
     def thunk():
+        fields_to_exclude = object_exclude_fields if object_exclude_fields else []
         return {
             field_name: copy_field(new_types, field)
             for field_name, field in interface_type.fields.items()
+            if field_name not in fields_to_exclude
         }
 
     return GraphQLInterfaceType(

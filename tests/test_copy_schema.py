@@ -135,6 +135,92 @@ def test_copy_schema_returns_new_schema_object_with_copied_directive(gql):
     assert copied_directive is not org_directive
 
 
+def test_copy_schema_returns_new_schema_object_without_excluded_type(gql):
+    schema_str = gql(
+        """
+        schema {
+            query: Query
+        }
+
+        type Query {
+            testQuery: TestTypeA!
+        }
+
+        type TestTypeA {
+            fieldA: Int!
+        }
+
+        type TestTypeB {
+            fieldB: String!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, exclude_types=["TestTypeB"])
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
+    assert "TestTypeB" not in copied_schema.type_map
+
+
+def test_copy_schema_returns_new_schema_object_with_union_without_excluded_type(gql):
+    schema_str = gql(
+        """
+        schema {
+            query: Query
+        }
+
+        type Query {
+            testQuery: TestTypeA!
+        }
+
+        type TestTypeA {
+            fieldA: Int!
+        }
+
+        type TestTypeB {
+            fieldB: String!
+        }
+
+        union TestUnionType = TestTypeA | TestTypeB
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, exclude_types=["TestTypeB"])
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
+    assert "TestTypeB" not in copied_schema.type_map
+    assert len(copied_schema.type_map["TestUnionType"].types) == 1
+    assert copied_schema.type_map["TestUnionType"].types[0].name == "TestTypeA"
+
+
+def test_copy_schema_raises_exception_if_excluded_type_is_used_by_not_excluded_element(
+    gql,
+):
+    schema_str = gql(
+        """
+        schema {
+            query: Query
+        }
+
+        type Query {
+            testQuery: TestTypeA!
+        }
+
+        type TestTypeA {
+            fieldA: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    with pytest.raises(TypeError):
+        copy_schema(schema, exclude_types=["TestTypeA"])
+
+
 @pytest.mark.parametrize(
     "graphql_type, expected_method_name",
     [

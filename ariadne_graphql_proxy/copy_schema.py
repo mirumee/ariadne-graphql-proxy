@@ -20,6 +20,7 @@ from graphql import (
     GraphQLSchema,
     GraphQLString,
     GraphQLUnionType,
+    assert_valid_schema,
 )
 
 from .standard_types import STANDARD_TYPES
@@ -32,7 +33,7 @@ def copy_schema(
     exclude_args: Optional[Dict[str, List[str]]] = None,
     exclude_fields: Optional[Dict[str, List[str]]] = None,
 ) -> GraphQLSchema:
-    new_types = copy_schema_types(schema)
+    new_types = copy_schema_types(schema, exclude_types=exclude_types)
 
     query_type = None
     if schema.query_type:
@@ -42,18 +43,24 @@ def copy_schema(
     if schema.mutation_type:
         mutation_type = new_types[schema.mutation_type.name]
 
-    return GraphQLSchema(
+    new_schema = GraphQLSchema(
         query=query_type,
         mutation=mutation_type,
         types=new_types.values(),
         directives=copy_directives(new_types, schema.directives),
     )
+    assert_valid_schema(new_schema)
+    return new_schema
 
 
-def copy_schema_types(schema: GraphQLSchema):
+def copy_schema_types(
+    schema: GraphQLSchema,
+    exclude_types: Optional[List[str]] = None,
+):
+    exclude_types = exclude_types if exclude_types is not None else []
     new_types = {}
     for graphql_type in schema.type_map.values():
-        if graphql_type.name in STANDARD_TYPES:
+        if graphql_type.name in STANDARD_TYPES or graphql_type.name in exclude_types:
             continue
 
         if isinstance(graphql_type, GraphQLEnumType):
@@ -72,7 +79,9 @@ def copy_schema_types(schema: GraphQLSchema):
             new_types[graphql_type.name] = copy_interface_type(new_types, graphql_type)
 
         if isinstance(graphql_type, GraphQLUnionType):
-            new_types[graphql_type.name] = copy_union_type(new_types, graphql_type)
+            new_types[graphql_type.name] = copy_union_type(
+                new_types, graphql_type, exclude_types
+            )
 
     return new_types
 
@@ -245,9 +254,18 @@ def copy_interface_type(
     )
 
 
-def copy_union_type(new_types: dict, union_type: GraphQLUnionType) -> GraphQLUnionType:
+def copy_union_type(
+    new_types: dict,
+    union_type: GraphQLUnionType,
+    exclude_types: Optional[List[str]] = None,
+) -> GraphQLUnionType:
     def thunk():
-        return tuple(new_types[subtype.name] for subtype in union_type.types)
+        types_to_exclude = exclude_types if exclude_types is not None else []
+        return tuple(
+            new_types[subtype.name]
+            for subtype in union_type.types
+            if subtype.name not in types_to_exclude
+        )
 
     return GraphQLUnionType(name=union_type.name, types=thunk)
 

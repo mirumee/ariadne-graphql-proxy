@@ -197,7 +197,7 @@ def test_copy_schema_returns_new_schema_object_with_union_without_excluded_type(
     assert copied_schema.type_map["TestUnionType"].types[0].name == "TestTypeA"
 
 
-def test_copy_schema_raises_exception_if_excluded_type_is_used_by_not_excluded_element(
+def test_copy_schema_raises_exception_if_excluded_type_is_used_by_not_excluded_field(
     gql,
 ):
     schema_str = gql(
@@ -246,11 +246,68 @@ def test_copy_schema_doesnt_raise_exception_if_type_is_excluded_with_fields_of_t
     )
     schema = build_ast_schema(parse(schema_str))
 
-    copy_schema(
+    copied_schema = copy_schema(
         schema,
         exclude_types=["TestTypeB"],
         exclude_fields={"TestTypeA": ["fieldB"]},
     )
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
+
+
+def test_copy_schema_raises_exception_if_excluded_type_is_used_by_not_excluded_arg(
+    gql,
+):
+    schema_str = gql(
+        """
+        schema {
+            query: Query
+        }
+
+        type Query {
+            testQuery(input: TestInputA!): Int!
+        }
+
+        input TestInputA {
+            fieldA: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    with pytest.raises(TypeError):
+        copy_schema(schema, exclude_types=["TestInputA"])
+
+
+def test_copy_schema_doesnt_raise_exception_if_type_is_excluded_with_arg_of_type(
+    gql,
+):
+    schema_str = gql(
+        """
+        schema {
+            query: Query
+        }
+
+        type Query {
+            testQuery(input: TestInputA!): Int!
+        }
+
+        input TestInputA {
+            fieldA: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        exclude_types=["TestInputA"],
+        exclude_args={"Query": {"testQuery": ["input"]}},
+    )
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
 
 
 @pytest.mark.parametrize(
@@ -337,7 +394,7 @@ def test_copy_enum_type_returns_new_enum_without_excluded_fields():
         },
     )
 
-    copied_type = copy_enum_type(graphql_type, ["VAL1"])
+    copied_type = copy_enum_type(graphql_type, object_exclude_fields=["VAL1"])
 
     assert isinstance(copied_type, GraphQLEnumType)
     assert copied_type is not graphql_type
@@ -372,7 +429,7 @@ def test_copy_object_type_returns_new_object_with_fields():
     assert copied_type.fields["fieldB"].type == duplicated_related_type
 
 
-def test_copy_object_type_returns_new_object_without_excluded_fields():
+def test_copy_object_type_returns_new_object_without_excluded_field():
     graphql_type = GraphQLObjectType(
         name="TypeName",
         fields={
@@ -381,11 +438,34 @@ def test_copy_object_type_returns_new_object_without_excluded_fields():
         },
     )
 
-    copied_type = copy_object_type({}, graphql_type, ["fieldB"])
+    copied_type = copy_object_type({}, graphql_type, object_exclude_fields=["fieldB"])
 
     assert isinstance(copied_type, GraphQLObjectType)
     assert copied_type is not graphql_type
     assert "fieldB" not in copied_type.fields
+
+
+def test_copy_object_type_returns_new_object_without_excluded_argument():
+    graphql_type = GraphQLObjectType(
+        name="TypeName",
+        fields={
+            "fieldA": GraphQLField(
+                type_=GraphQLString,
+                args={
+                    "arg1": GraphQLArgument(type_=GraphQLString),
+                    "arg2": GraphQLArgument(type_=GraphQLString),
+                },
+            )
+        },
+    )
+
+    copied_type = copy_object_type(
+        {}, graphql_type, object_exclude_args={"fieldA": ["arg1"]}
+    )
+
+    assert isinstance(copied_type, GraphQLObjectType)
+    assert copied_type is not graphql_type
+    assert "arg1" not in copied_type.fields["fieldA"].args
 
 
 def test_copy_field_returns_new_object():
@@ -428,6 +508,22 @@ def test_test_copy_field_returns_new_object_with_related_type():
     assert copied_type.type == duplicated_related_type
 
 
+def test_copy_field_returns_field_without_excluded_arg():
+    graphql_field = GraphQLField(
+        type_=GraphQLString,
+        args={
+            "arg1": GraphQLArgument(type_=GraphQLString),
+            "arg2": GraphQLArgument(type_=GraphQLString),
+        },
+    )
+
+    copied_type = copy_field({}, graphql_field, field_exclude_args=["arg1"])
+
+    assert isinstance(copied_type, GraphQLField)
+    assert copied_type is not graphql_field
+    assert "arg1" not in copied_type.args
+
+
 def test_copy_arguments_returns_dict_with_copies_of_arguments():
     related_argument_type = GraphQLInputObjectType(
         name="TypeA", fields={"val": GraphQLInputField(type_=GraphQLString)}
@@ -463,6 +559,17 @@ def test_copy_arguments_returns_dict_with_copies_of_arguments():
     assert isinstance(copied_arguments["arg2"], GraphQLArgument)
     assert copied_arguments["arg2"] is not arguments["arg2"]
     assert copied_arguments["arg2"].type == duplicated_related_argument_type
+
+
+def test_copy_arguments_returns_dict_without_excluded_arg():
+    arguments = {
+        "arg1": GraphQLArgument(type_=GraphQLString),
+        "arg2": GraphQLArgument(type_=GraphQLString),
+    }
+
+    copied_arguments = copy_arguments({}, arguments, field_exclude_args=["arg1"])
+
+    assert "arg1" not in copied_arguments
 
 
 @pytest.mark.parametrize(
@@ -664,7 +771,9 @@ def test_copy_input_type_returns_input_without_excluded_fields():
         },
     )
 
-    copied_input_type = copy_input_type({}, input_type, ["field2"])
+    copied_input_type = copy_input_type(
+        {}, input_type, object_exclude_fields=["field2"]
+    )
 
     assert isinstance(copied_input_type, GraphQLInputObjectType)
     assert copied_input_type is not input_type
@@ -762,7 +871,6 @@ def test_copy_interface_type_returns_new_object_with_fields():
 
 
 def test_copy_interface_type_returns_new_interface_without_excluded_fields():
-
     graphql_type = GraphQLInterfaceType(
         name="TypeName",
         fields={
@@ -771,11 +879,36 @@ def test_copy_interface_type_returns_new_interface_without_excluded_fields():
         },
     )
 
-    copied_type = copy_interface_type({}, graphql_type, ["fieldB"])
+    copied_type = copy_interface_type(
+        {}, graphql_type, object_exclude_fields=["fieldB"]
+    )
 
     assert isinstance(copied_type, GraphQLInterfaceType)
     assert copied_type is not graphql_type
     assert "fieldB" not in copied_type.fields
+
+
+def test_copy_interface_type_returns_new_interface_without_excluded_arg():
+    graphql_type = GraphQLInterfaceType(
+        name="TypeName",
+        fields={
+            "fieldA": GraphQLField(
+                type_=GraphQLString,
+                args={
+                    "arg1": GraphQLArgument(type_=GraphQLString),
+                    "arg2": GraphQLArgument(type_=GraphQLString),
+                },
+            ),
+        },
+    )
+
+    copied_type = copy_interface_type(
+        {}, graphql_type, object_exclude_args={"fieldA": ["arg1"]}
+    )
+
+    assert isinstance(copied_type, GraphQLInterfaceType)
+    assert copied_type is not graphql_type
+    assert "arg1" not in copied_type.fields["fieldA"].args
 
 
 def test_copy_union_type_returns_copy_of_union_with_copies_of_subtypes():

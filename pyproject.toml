@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ariadne_graphql_proxy"
+description = "Ariadne toolkit for building GraphQL proxies"
+version = "0.1.0"
+dependencies = ["graphql-core", "httpx", "ariadne"]
+
+[project.optional-dependencies]
+test = ["pytest", "pytest-mock"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -179,7 +179,7 @@ def copy_input_type(new_types, graphql_type):
     def thunk():
         return {
             field_name: GraphQLInputField(
-                copy_input_field(new_types, field.type),
+                copy_input_field_type(new_types, field.type),
                 default_value=field.default_value,
                 description=field.description,
                 deprecation_reason=field.deprecation_reason,
@@ -194,12 +194,12 @@ def copy_input_type(new_types, graphql_type):
     )
 
 
-def copy_input_field(new_types, field_type):
+def copy_input_field_type(new_types, field_type):
     if isinstance(field_type, GraphQLList):
-        return GraphQLList(copy_input_field(new_types, field_type.of_type))
+        return GraphQLList(copy_input_field_type(new_types, field_type.of_type))
 
     if isinstance(field_type, GraphQLNonNull):
-        return GraphQLNonNull(copy_input_field(new_types, field_type.of_type))
+        return GraphQLNonNull(copy_input_field_type(new_types, field_type.of_type))
 
     if field_type == GraphQLBoolean:
         return GraphQLBoolean
@@ -247,7 +247,7 @@ def copy_interface_type(
 
 def copy_union_type(new_types: dict, union_type: GraphQLUnionType) -> GraphQLUnionType:
     def thunk():
-        return [new_types[subtype.name] for subtype in union_type.types]
+        return tuple(new_types[subtype.name] for subtype in union_type.types)
 
     return GraphQLUnionType(name=union_type.name, types=thunk)
 

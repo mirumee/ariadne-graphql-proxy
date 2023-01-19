@@ -30,8 +30,10 @@ def copy_schema(
     schema: GraphQLSchema,
     *,
     exclude_types: Optional[List[str]] = None,
-    exclude_args: Optional[Dict[str, Optional[Dict[str, List[str]]]]] = None,
+    exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
     exclude_fields: Optional[Dict[str, List[str]]] = None,
+    exclude_directives: Optional[List[str]] = None,
+    exclude_directives_args: Optional[Dict[str, List[str]]] = None,
 ) -> GraphQLSchema:
     new_types = copy_schema_types(
         schema,
@@ -52,7 +54,12 @@ def copy_schema(
         query=query_type,
         mutation=mutation_type,
         types=new_types.values(),
-        directives=copy_directives(new_types, schema.directives),
+        directives=copy_directives(
+            new_types,
+            schema.directives,
+            exclude_directives=exclude_directives,
+            exclude_directives_args=exclude_directives_args,
+        ),
     )
     assert_valid_schema(new_schema)
     return new_schema
@@ -61,7 +68,7 @@ def copy_schema(
 def copy_schema_types(
     schema: GraphQLSchema,
     exclude_types: Optional[List[str]] = None,
-    exclude_args: Optional[Dict[str, Optional[Dict[str, List[str]]]]] = None,
+    exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
     exclude_fields: Optional[Dict[str, List[str]]] = None,
 ):
     exclude_types = exclude_types if exclude_types else []
@@ -327,16 +334,35 @@ def copy_union_type(
 
 
 def copy_directives(
-    new_types: dict, directives: Tuple[GraphQLDirective, ...]
+    new_types: dict,
+    directives: Tuple[GraphQLDirective, ...],
+    exclude_directives: Optional[List[str]] = None,
+    exclude_directives_args: Optional[Dict[str, List[str]]] = None,
 ) -> Tuple[GraphQLDirective, ...]:
-    return tuple(copy_directive(new_types, directive) for directive in directives)
+    exclude_directives = exclude_directives if exclude_directives else []
+    exclude_directives_args = exclude_directives_args if exclude_directives_args else {}
+    return tuple(
+        copy_directive(
+            new_types,
+            directive,
+            directive_exclude_args=exclude_directives_args.get(directive.name),
+        )
+        for directive in directives
+        if directive.name not in exclude_directives
+    )
 
 
-def copy_directive(new_types: dict, directive: GraphQLDirective) -> GraphQLDirective:
+def copy_directive(
+    new_types: dict,
+    directive: GraphQLDirective,
+    directive_exclude_args: Optional[List[str]] = None,
+) -> GraphQLDirective:
     return GraphQLDirective(
         name=directive.name,
         locations=directive.locations,
-        args=copy_arguments(new_types, directive.args),
+        args=copy_arguments(
+            new_types, directive.args, field_exclude_args=directive_exclude_args
+        ),
         is_repeatable=directive.is_repeatable,
         description=directive.description,
         extensions=directive.extensions.copy() if directive.extensions else {},

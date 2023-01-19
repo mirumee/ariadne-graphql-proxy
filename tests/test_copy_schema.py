@@ -953,6 +953,45 @@ def test_copy_directives_calls_copy_directive_for_each_object(mocker):
     assert mocked_copy_directive.called_with({}, directive2)
 
 
+def test_copy_directives_returns_tuple_without_excluded_directive():
+    copied_directives = copy_directives(
+        {},
+        (
+            GraphQLDirective(
+                name="testDirectiveA", locations=(DirectiveLocation.FIELD,)
+            ),
+            GraphQLDirective(
+                name="testDirectiveB", locations=(DirectiveLocation.FIELD,)
+            ),
+        ),
+        exclude_directives=["testDirectiveB"],
+    )
+
+    assert len(copied_directives) == 1
+    assert copied_directives[0].name != "testDirectiveB"
+
+
+def test_copy_directives_returns_tuple_with_directive_without_excluded_arg():
+    copied_directives = copy_directives(
+        {},
+        (
+            GraphQLDirective(
+                name="testDirective",
+                locations=(DirectiveLocation.FIELD,),
+                args={
+                    "arg1": GraphQLArgument(type_=GraphQLString),
+                    "arg2": GraphQLArgument(type_=GraphQLString),
+                },
+            ),
+        ),
+        exclude_directives_args={"testDirective": ["arg1"]},
+    )
+
+    assert len(copied_directives) == 1
+    assert copied_directives[0].name == "testDirective"
+    assert "arg1" not in copied_directives[0].args
+
+
 def test_copy_directive_returns_new_directive_object():
     related_arg_type = GraphQLInputObjectType(
         name="InputType", fields={"field1": GraphQLInputField(GraphQLBoolean)}
@@ -990,3 +1029,20 @@ def test_copy_directive_returns_new_directive_object():
     assert copied_directive.is_repeatable == directive.is_repeatable
     assert copied_directive.description == directive.description
     assert copied_directive.extensions == directive.extensions
+
+
+def test_copy_directive_returns_directive_without_excluded_arg():
+    directive = GraphQLDirective(
+        name="testDirective",
+        locations=(DirectiveLocation.FIELD,),
+        args={
+            "arg1": GraphQLArgument(type_=GraphQLString),
+            "arg2": GraphQLArgument(type_=GraphQLString),
+        },
+    )
+
+    copied_directive = copy_directive({}, directive, directive_exclude_args=["arg1"])
+
+    assert isinstance(copied_directive, GraphQLDirective)
+    assert copied_directive is not directive
+    assert "arg1" not in copied_directive.args

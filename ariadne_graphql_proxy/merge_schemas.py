@@ -123,7 +123,7 @@ def merge_enums(enum1: GraphQLEnumType, enum2: GraphQLEnumType) -> GraphQLEnumTy
 def merge_objects(
     merged_types: dict, object1: GraphQLObjectType, object2: GraphQLObjectType
 ) -> GraphQLObjectType:
-    def thunk():
+    def fields_thunk():
         merged_fields = {}
         for field_name in set(object1.fields.keys()) | set(object2.fields.keys()):
             field1 = object1.fields.get(field_name)
@@ -138,9 +138,16 @@ def merge_objects(
                 )
         return merged_fields
 
+    def interfaces_thunk():
+        interfaces_names = {
+            i.name for i in chain(object1.interfaces, object2.interfaces)
+        }
+        return [merged_types[name] for name in interfaces_names]
+
     return GraphQLObjectType(
-        object1.name,
-        thunk,
+        name=object1.name,
+        fields=fields_thunk,
+        interfaces=interfaces_thunk,
     )
 
 
@@ -295,7 +302,7 @@ def merge_interfaces(
     interface1: GraphQLInterfaceType,
     interface2: GraphQLInterfaceType,
 ) -> GraphQLInterfaceType:
-    def thunk():
+    def fields_thunk():
         merged_fields = {}
         for field_name in set(interface1.fields.keys()) | set(interface2.fields.keys()):
             field1 = interface1.fields.get(field_name)
@@ -310,9 +317,16 @@ def merge_interfaces(
                 )
         return merged_fields
 
+    def interfaces_thunk():
+        interfaces_names = {
+            i.name for i in chain(interface1.interfaces, interface2.interfaces)
+        }
+        return [merged_types[name] for name in interfaces_names]
+
     return GraphQLInterfaceType(
-        interface1.name,
-        thunk,
+        name=interface1.name,
+        fields=fields_thunk,
+        interfaces=interfaces_thunk,
     )
 
 

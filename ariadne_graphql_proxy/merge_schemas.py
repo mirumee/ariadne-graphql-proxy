@@ -201,7 +201,7 @@ def merge_args(
         arg1 = args1.get(arg_name)
         arg2 = args2.get(arg_name)
 
-        if arg1 and arg2 and compare_types(arg1.type, arg2.type):
+        if arg1 and arg2 and not compare_types(arg1.type, arg2.type):
             raise Exception(f"Argument type mismatch: {arg1.type} =/= {arg2.type}")
 
         merged_args[arg_name] = copy_argument(new_types=merged_types, arg=arg1 or arg2)

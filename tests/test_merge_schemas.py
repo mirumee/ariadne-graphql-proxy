@@ -263,6 +263,7 @@ def test_merge_schemas_returns_schema_with_merged_union(gql):
         "TestTypeB",
     }
 
+
 def test_merge_schemas_returns_schema_with_merged_implemented_interfaces(gql):
     schema_str = gql(
         """
@@ -270,7 +271,7 @@ def test_merge_schemas_returns_schema_with_merged_implemented_interfaces(gql):
         type Query { _skip: Int! }
         """
     )
-    union1_str = gql(
+    interface1_str = gql(
         """
         interface TestInterfaceA { fieldA: String! }
         type TestType implements TestInterfaceA{
@@ -278,7 +279,7 @@ def test_merge_schemas_returns_schema_with_merged_implemented_interfaces(gql):
         }
         """
     )
-    union2_str = gql(
+    interface2_str = gql(
         """
         interface TestInterfaceB { fieldB: String! }
         type TestType implements TestInterfaceB{
@@ -286,21 +287,19 @@ def test_merge_schemas_returns_schema_with_merged_implemented_interfaces(gql):
         }
         """
     )
-    schema1 = build_ast_schema(parse(schema_str + union1_str))
-    schema2 = build_ast_schema(parse(schema_str + union2_str))
+    schema1 = build_ast_schema(parse(schema_str + interface1_str))
+    schema2 = build_ast_schema(parse(schema_str + interface2_str))
 
     merged_schema = merge_schemas(schema1, schema2)
 
     assert isinstance(merged_schema, GraphQLSchema)
-    uniont_type = merged_schema.type_map["TestUnion"]
-    assert uniont_type
-    assert uniont_type is not schema1.type_map["TestUnion"]
-    assert uniont_type is not schema2.type_map["TestUnion"]
-    assert {t.name for t in uniont_type.types} == {
-        "TestTypeCommon",
-        "TestTypeA",
-        "TestTypeB",
-    }
+    type_ = merged_schema.type_map["TestType"]
+    assert type_
+    assert type_ is not schema1.type_map["TestType"]
+    assert type_ is not schema2.type_map["TestType"]
+    assert {t.name for t in type_.interfaces} == {"TestInterfaceA", "TestInterfaceB"}
+
+
 def test_merge_schemas_returns_schema_with_merged_arguments(gql):
     schema1_str = gql(
         """
@@ -329,6 +328,7 @@ def test_merge_schemas_returns_schema_with_merged_arguments(gql):
     assert args["argA"]
     assert args["argB"]
     assert args["argC"]
+
 
 def test_merge_schemas_with_different_types_field_raises_exception(gql):
     schema1_str = gql(

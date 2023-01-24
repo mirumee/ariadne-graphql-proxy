@@ -429,6 +429,30 @@ def test_copy_object_type_returns_new_object_with_fields():
     assert copied_type.fields["fieldB"].type == duplicated_related_type
 
 
+def test_copy_object_type_returns_new_object_with_implemented_interface():
+    interface = GraphQLInterfaceType(
+        name="TestInterface", fields={"fieldA": GraphQLField(type_=GraphQLString)}
+    )
+    duplicated_interface = GraphQLInterfaceType(
+        name="TestInterface", fields={"fieldA": GraphQLField(type_=GraphQLString)}
+    )
+    graphql_type = GraphQLObjectType(
+        name="TypeName",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+        interfaces=[interface],
+    )
+
+    copied_type = copy_object_type(
+        {"TestInterface": duplicated_interface}, graphql_type
+    )
+
+    assert isinstance(copied_type, GraphQLObjectType)
+    assert copied_type is not graphql_type
+    assert len(copied_type.interfaces) == 1
+    assert copied_type.interfaces[0] is not interface
+    assert copied_type.interfaces[0] is duplicated_interface
+
+
 def test_copy_object_type_returns_new_object_without_excluded_field():
     graphql_type = GraphQLObjectType(
         name="TypeName",
@@ -870,6 +894,30 @@ def test_copy_interface_type_returns_new_object_with_fields():
     assert copied_type.fields["fieldB"].type == duplicated_related_type
 
 
+def test_copy_object_type_returns_new_object_with_implemented_interface():
+    interface = GraphQLInterfaceType(
+        name="TestInterface", fields={"fieldA": GraphQLField(type_=GraphQLString)}
+    )
+    duplicated_interface = GraphQLInterfaceType(
+        name="TestInterface", fields={"fieldA": GraphQLField(type_=GraphQLString)}
+    )
+    graphql_type = GraphQLObjectType(
+        name="TypeName",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+        interfaces=[interface],
+    )
+
+    copied_type = copy_object_type(
+        {"TestInterface": duplicated_interface}, graphql_type
+    )
+
+    assert isinstance(copied_type, GraphQLObjectType)
+    assert copied_type is not graphql_type
+    assert len(copied_type.interfaces) == 1
+    assert copied_type.interfaces[0] is not interface
+    assert copied_type.interfaces[0] is duplicated_interface
+
+    
 def test_copy_interface_type_returns_new_interface_without_excluded_fields():
     graphql_type = GraphQLInterfaceType(
         name="TypeName",

@@ -159,7 +159,7 @@ def copy_object_type(
     object_exclude_fields: Optional[List[str]] = None,
     object_exclude_args: Optional[Dict[str, List[str]]] = None,
 ):
-    def thunk():
+    def fields_thunk():
         fields_to_exclude = object_exclude_fields if object_exclude_fields else []
         args_to_exclude = object_exclude_args if object_exclude_args else {}
         return {
@@ -168,9 +168,13 @@ def copy_object_type(
             if field_name not in fields_to_exclude
         }
 
+    def interfaces_thunk():
+        return [new_types[i.name] for i in graphql_type.interfaces]
+
     return GraphQLObjectType(
-        graphql_type.name,
-        thunk,
+        name=graphql_type.name,
+        fields=fields_thunk,
+        interfaces=interfaces_thunk,
     )
 
 
@@ -329,7 +333,7 @@ def copy_interface_type(
     object_exclude_fields: Optional[List[str]] = None,
     object_exclude_args: Optional[Dict[str, List[str]]] = None,
 ) -> GraphQLInterfaceType:
-    def thunk():
+    def fields_thunk():
         fields_to_exclude = object_exclude_fields if object_exclude_fields else []
         args_to_exclude = object_exclude_args if object_exclude_args else {}
         return {
@@ -338,9 +342,13 @@ def copy_interface_type(
             if field_name not in fields_to_exclude
         }
 
+    def interfaces_thunk():
+        return [new_types[i.name] for i in interface_type.interfaces]
+
     return GraphQLInterfaceType(
         name=interface_type.name,
-        fields=thunk,
+        fields=fields_thunk,
+        interfaces=interfaces_thunk,
     )
 
 

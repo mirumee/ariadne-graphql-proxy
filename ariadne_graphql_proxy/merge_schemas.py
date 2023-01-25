@@ -105,7 +105,9 @@ def merge_types(
 
 def merge_enums(enum1: GraphQLEnumType, enum2: GraphQLEnumType) -> GraphQLEnumType:
     if enum1.description != enum2.description:
-        raise Exception
+        raise TypeError(
+            f"Enums descriptions mismatch {enum1.description} =/= {enum2.description}"
+        )
 
     values = enum1.values.copy()
     values.update(**enum2.values.copy())
@@ -155,7 +157,7 @@ def merge_fields(
     merged_types: dict, field1: GraphQLField, field2: GraphQLField
 ) -> GraphQLField:
     if not compare_types(field1.type, field2.type):
-        raise Exception(f"Field types mismatch: {field1.type} =/= {field2.type}")
+        raise TypeError(f"Field types mismatch: {field1.type} =/= {field2.type}")
 
     extensions = field1.extensions.copy()
     extensions.update(**field2.extensions.copy())
@@ -202,7 +204,7 @@ def merge_args(
         arg2 = args2.get(arg_name)
 
         if arg1 and arg2 and not compare_types(arg1.type, arg2.type):
-            raise Exception(f"Argument type mismatch: {arg1.type} =/= {arg2.type}")
+            raise TypeError(f"Argument type mismatch: {arg1.type} =/= {arg2.type}")
 
         merged_args[arg_name] = copy_argument(new_types=merged_types, arg=arg1 or arg2)
 
@@ -240,24 +242,24 @@ def merge_input_fields(
     merged_types: dict, field1: GraphQLInputField, field2: GraphQLInputField
 ) -> GraphQLInputField:
     if not compare_types(field1.type, field2.type):
-        raise Exception(f"Input field types mismatch: {field1.type} =/= {field2.type}")
+        raise TypeError(f"Input field types mismatch: {field1.type} =/= {field2.type}")
     if field1.default_value != field2.default_value:
-        raise Exception(
+        raise TypeError(
             "Input field default value mismatch: "
             f"{field1.default_value} =/= {field2.default_value}"
         )
     if field1.description != field2.description:
-        raise Exception(
+        raise TypeError(
             "Input field description mismatch: "
             f"{field1.description} =/= {field2.description}"
         )
     if field1.deprecation_reason != field2.deprecation_reason:
-        raise Exception(
+        raise TypeError(
             "Input field deprecation reason mismatch: "
             f"{field1.deprecation_reason} =/= {field2.deprecation_reason}"
         )
     if field1.out_name != field2.out_name:
-        raise Exception(
+        raise TypeError(
             f"Input field out name mismatch: {field1.out_name} =/= {field2.out_name}"
         )
 
@@ -271,29 +273,29 @@ def merge_input_fields(
 
 
 def merge_scalars(
-    type1: GraphQLScalarType, type2: GraphQLScalarType
+    scalar1: GraphQLScalarType, scalar2: GraphQLScalarType
 ) -> GraphQLScalarType:
-    if type1.description != type2.description:
-        raise Exception(
+    if scalar1.description != scalar2.description:
+        raise TypeError(
             "Scalar description mismatch : "
-            f"{type1.description} =/= {type2.description}"
+            f"{scalar1.description} =/= {scalar2.description}"
         )
-    if type1.specified_by_url != type2.specified_by_url:
-        raise Exception(
+    if scalar1.specified_by_url != scalar2.specified_by_url:
+        raise TypeError(
             "Scalar specified_by_url mismatch : "
-            f"{type1.specified_by_url} =/= {type2.specified_by_url}"
+            f"{scalar1.specified_by_url} =/= {scalar2.specified_by_url}"
         )
 
-    extensions = type1.extensions.copy()
-    extensions.update(**type2.extensions.copy())
+    extensions = scalar1.extensions.copy()
+    extensions.update(**scalar2.extensions.copy())
 
     return GraphQLScalarType(
-        name=type1.name,
-        description=type1.description,
-        specified_by_url=type1.specified_by_url,
+        name=scalar1.name,
+        description=scalar1.description,
+        specified_by_url=scalar1.specified_by_url,
         extensions=extensions,
-        ast_node=type1.ast_node,
-        extension_ast_nodes=type1.extension_ast_nodes,
+        ast_node=scalar1.ast_node,
+        extension_ast_nodes=scalar1.extension_ast_nodes,
     )
 
 

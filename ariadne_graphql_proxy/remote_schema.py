@@ -10,8 +10,8 @@ from graphql import (
     GraphQLFieldResolver,
     GraphQLFloat,
     GraphQLID,
-    GraphQLInputObjectType,
     GraphQLInputField,
+    GraphQLInputObjectType,
     GraphQLInt,
     GraphQLInterfaceType,
     GraphQLList,
@@ -192,6 +192,8 @@ class GraphQLRemoteSchema(GraphQLSchema):
                 return GraphQLFloat
             if arg["name"] == "Boolean":
                 return GraphQLBoolean
+
+            return types_map[arg["name"]]
 
         raise NotImplementedError(f"Unknown GraphQL argument kind: '{arg['kind']}'")
 

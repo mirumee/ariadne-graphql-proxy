@@ -21,6 +21,7 @@ from graphql import (
     GraphQLSchema,
     GraphQLString,
     GraphQLUnionType,
+    Undefined,
 )
 
 from .resolvers import set_resolver
@@ -158,11 +159,37 @@ class GraphQLRemoteSchema(GraphQLSchema):
             return None
         args = {}
         for arg in args_data:
+            type_ = self.get_remote_object_field_arg(types_map, arg["type"])
             args[arg["name"]] = GraphQLArgument(
-                self.get_remote_object_field_arg(types_map, arg["type"]),
-                default_value=arg["defaultValue"],
+                type_,
+                default_value=self.convert_default_value(arg["defaultValue"], type_),
             )
         return args
+
+    def convert_default_value(self, value: str, type_):
+        if value is None:
+            return Undefined
+
+        if isinstance(type_, GraphQLNonNull):
+            return self.convert_default_value(value, type_.of_type)
+
+        if isinstance(type_, GraphQLList):
+            return [
+                self.convert_default_value(v.strip(), type_.of_type)
+                for v in value.strip("[]").split(",")
+            ]
+
+        if (
+            isinstance(type_, GraphQLScalarType)
+            and type_.name == "Boolean"
+            and value in ("true", "false")
+        ):
+            return value == "true"
+
+        if isinstance(type_, GraphQLEnumType):
+            return value.strip('"').strip("'")
+
+        return value
 
     def get_remote_object_field_arg(self, types_map, arg):
         if arg["kind"] == "NON_NULL":
@@ -213,13 +240,16 @@ class GraphQLRemoteSchema(GraphQLSchema):
 
     def get_remote_input(self, types_map, type_data):
         def thunk():
-            return {
-                field["name"]: GraphQLInputField(
-                    self.get_remote_object_field(types_map, field["type"]),
-                    default_value=field["defaultValue"],
+            fields = {}
+            for field in type_data["inputFields"]:
+                type_ = self.get_remote_object_field(types_map, field["type"])
+                fields[field["name"]] = GraphQLInputField(
+                    type_,
+                    default_value=self.convert_default_value(
+                        field["defaultValue"], type_
+                    ),
                 )
-                for field in type_data["inputFields"]
-            }
+            return fields
 
         return GraphQLInputObjectType(
             type_data["name"],

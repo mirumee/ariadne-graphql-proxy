@@ -136,7 +136,11 @@ def merge_objects(
                 )
             else:
                 merged_fields[field_name] = merge_fields(
-                    merged_types=merged_types, field1=field1, field2=field2
+                    merged_types=merged_types,
+                    type_name=object1.name,
+                    field_name=field_name,
+                    field1=field1,
+                    field2=field2,
                 )
         return merged_fields
 
@@ -154,10 +158,16 @@ def merge_objects(
 
 
 def merge_fields(
-    merged_types: dict, field1: GraphQLField, field2: GraphQLField
+    merged_types: dict,
+    type_name: str,
+    field_name: str,
+    field1: GraphQLField,
+    field2: GraphQLField,
 ) -> GraphQLField:
     if not compare_types(field1.type, field2.type):
-        raise TypeError(f"Field types mismatch: {field1.type} =/= {field2.type}")
+        raise TypeError(
+            f"{type_name}.{field_name} type mismatch: {field1.type} =/= {field2.type}"
+        )
 
     extensions = field1.extensions.copy()
     extensions.update(**field2.extensions.copy())
@@ -248,7 +258,7 @@ def merge_input_fields(
             "Input field default value mismatch: "
             f"{field1.default_value} =/= {field2.default_value}"
         )
-    if field1.description != field2.description:
+    if field1.description and field2.description and field1.description != field2.description:
         raise TypeError(
             "Input field description mismatch: "
             f"{field1.description} =/= {field2.description}"
@@ -266,7 +276,7 @@ def merge_input_fields(
     return GraphQLInputField(
         copy_input_field_type(new_types=merged_types, field_type=field1.type),
         default_value=field1.default_value,
-        description=field1.description,
+        description=field1.description or field2.description,
         deprecation_reason=field1.deprecation_reason,
         out_name=field1.out_name,
     )

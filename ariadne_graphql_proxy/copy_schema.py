@@ -211,11 +211,18 @@ def copy_field_type(new_types, field_type):
         return GraphQLInt
 
     if isinstance(
-        field_type, (GraphQLEnumType, GraphQLObjectType, GraphQLInterfaceType)
+        field_type,
+        (
+            GraphQLEnumType,
+            GraphQLObjectType,
+            GraphQLInterfaceType,
+            GraphQLScalarType,
+            GraphQLUnionType,
+        )
     ):
         return new_types[field_type.name]
 
-    raise Exception(f"Unknown field type: {repr(field_type)}")
+    raise TypeError(f"Unknown field type: {repr(field_type)}")
 
 
 def copy_arguments(
@@ -260,8 +267,10 @@ def copy_argument_type(new_types, arg):
     if arg == GraphQLInt:
         return GraphQLInt
 
-    if isinstance(arg, (GraphQLEnumType, GraphQLInputObjectType)):
+    if isinstance(arg, (GraphQLEnumType, GraphQLInputObjectType, GraphQLScalarType)):
         return new_types[arg.name]
+
+    raise TypeError(f"Unknown argument type: {repr(arg.name)}")
 
 
 def copy_input_type(

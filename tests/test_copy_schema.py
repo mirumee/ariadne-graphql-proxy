@@ -705,7 +705,6 @@ def test_copy_argument_type_returns_correct_scalar_type(field_type, expected):
     ],
 )
 def test_copy_argument_type_returns_correct_related_type(field_type, duplicated_type):
-
     assert (
         copy_argument_type({field_type.name: duplicated_type}, field_type)
         == duplicated_type
@@ -786,7 +785,6 @@ def test_copy_input_type():
 
 
 def test_copy_input_type_returns_input_without_excluded_fields():
-
     input_type = GraphQLInputObjectType(
         name="InputType",
         fields={
@@ -917,7 +915,7 @@ def test_copy_object_type_returns_new_object_with_implemented_interface():
     assert copied_type.interfaces[0] is not interface
     assert copied_type.interfaces[0] is duplicated_interface
 
-    
+
 def test_copy_interface_type_returns_new_interface_without_excluded_fields():
     graphql_type = GraphQLInterfaceType(
         name="TypeName",

@@ -218,7 +218,7 @@ def copy_field_type(new_types, field_type):
             GraphQLInterfaceType,
             GraphQLScalarType,
             GraphQLUnionType,
-        )
+        ),
     ):
         return new_types[field_type.name]
 

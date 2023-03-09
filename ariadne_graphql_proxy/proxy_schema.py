@@ -59,7 +59,13 @@ class ProxySchema:
         exclude_directives_args: Optional[Dict[str, List[str]]] = None,
         extra_fields: Optional[Dict[str, List[str]]] = None,
     ) -> int:
-        if exclude_types or exclude_args or exclude_fields or exclude_directives or exclude_directives_args:
+        if (
+            exclude_types
+            or exclude_args
+            or exclude_fields
+            or exclude_directives
+            or exclude_directives_args
+        ):
             schema = copy_schema(
                 schema,
                 exclude_types=exclude_types,
@@ -88,7 +94,7 @@ class ProxySchema:
                     self.fields_map[type_name][field_name] = set()
 
                 self.fields_map[type_name][field_name].add(schema_id)
-        
+
         if extra_fields:
             for type_name, type_fields in extra_fields.items():
                 if type_name not in self.fields_map:
@@ -101,17 +107,25 @@ class ProxySchema:
                     self.fields_map[type_name][field_name].add(schema_id)
 
         return schema_id
-    
-    def add_foreign_key(self, type_name: str, field_name: str, on: Union[str, List[str]]):
+
+    def add_foreign_key(
+        self, type_name: str, field_name: str, on: Union[str, List[str]]
+    ):
         if type_name not in self.foreign_keys:
             self.foreign_keys[type_name] = {}
-        
+
         if field_name in self.foreign_keys[type_name]:
-            raise ValueError(
-                f"Foreign key already exists on {type_name}.{field_name}"
-            )
+            raise ValueError(f"Foreign key already exists on {type_name}.{field_name}")
 
         self.foreign_keys[type_name][field_name] = [on] if isinstance(on, str) else on
+
+    def add_delayed_fields(self, delayed_fields: Dict[str, List[str]]):
+        for type_name, type_fields in delayed_fields.items():
+            if type_name not in self.fields_map:
+                continue
+
+            for field_name in type_fields:
+                self.fields_map[type_name].pop(field_name, None)
 
     def get_sub_schema(self, schema_id: int) -> GraphQLSchema:
         try:
@@ -125,7 +139,7 @@ class ProxySchema:
         for type_name, type_def in self.schema.type_map.items():
             if not isinstance(type_def, GraphQLObjectType):
                 continue
-    
+
             if type_name not in self.fields_types:
                 self.fields_types[type_name] = {}
 
@@ -152,10 +166,13 @@ class ProxySchema:
         variables: Optional[dict],
         document: DocumentNode,
     ) -> dict:
-        time_start = time_ns()
+        context_value["root_query"] = {
+            "operationName": operation_name,
+            "document": document,
+            "variables": variables,
+        }
+
         queries = self.query_filter.split_query(document)
-        time_total = time_ns() - time_start
-        print(f"Query splitting time: {time_total / 1000000.0}ms")
 
         if not queries:
             return None
@@ -168,11 +185,15 @@ class ProxySchema:
 
         subqueries_data = await gather(
             *[
-                run_request(self.urls[schema_id], headers, {
-                    "operationName": operation_name,
-                    "query": print_document(query_document),
-                    "variables": variables,
-                })
+                run_request(
+                    self.urls[schema_id],
+                    headers,
+                    {
+                        "operationName": operation_name,
+                        "query": print_document(query_document),
+                        "variables": variables,
+                    },
+                )
                 for schema_id, query_document in queries
             ]
         )

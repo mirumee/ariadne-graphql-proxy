@@ -258,7 +258,11 @@ def merge_input_fields(
             "Input field default value mismatch: "
             f"{field1.default_value} =/= {field2.default_value}"
         )
-    if field1.description and field2.description and field1.description != field2.description:
+    if (
+        field1.description
+        and field2.description
+        and field1.description != field2.description
+    ):
         raise TypeError(
             "Input field description mismatch: "
             f"{field1.description} =/= {field2.description}"

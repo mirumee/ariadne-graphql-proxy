@@ -35,7 +35,7 @@ class QueryFilter:
         self.fields_map = fields_map
         self.fields_types = fields_types
         self.foreign_keys = foreign_keys
-    
+
     def split_query(self, document: DocumentNode) -> List[Tuple[int, DocumentNode]]:
         queries: List[Tuple[int, DocumentNode]] = []
 
@@ -45,7 +45,7 @@ class QueryFilter:
                 queries.append((schema_id, schema_query))
 
         return queries
-    
+
     def get_schema_query(
         self,
         schema_id: int,
@@ -99,8 +99,8 @@ class QueryFilter:
                 continue
 
             if (
-                selection.name.value not in type_fields or 
-                context.schema_id not in type_fields[selection.name.value]
+                selection.name.value not in type_fields
+                or context.schema_id not in type_fields[selection.name.value]
             ):
                 continue
 
@@ -141,8 +141,8 @@ class QueryFilter:
         for selection in operation_node.selection_set.selections:
             if isinstance(selection, FieldNode):
                 if (
-                    selection.name.value not in type_fields or 
-                    context.schema_id not in type_fields[selection.name.value]
+                    selection.name.value not in type_fields
+                    or context.schema_id not in type_fields[selection.name.value]
                 ):
                     continue
 
@@ -186,8 +186,8 @@ class QueryFilter:
         field_name = field_node.name.value
 
         if (
-            schema_obj in self.foreign_keys and
-            field_name in self.foreign_keys[schema_obj]
+            schema_obj in self.foreign_keys
+            and field_name in self.foreign_keys[schema_obj]
         ):
             foreign_key = tuple(
                 FieldNode(
@@ -213,8 +213,8 @@ class QueryFilter:
         for selection in field_node.selection_set.selections:
             if isinstance(selection, FieldNode):
                 if (
-                    selection.name.value not in type_fields or 
-                    context.schema_id not in type_fields[selection.name.value]
+                    selection.name.value not in type_fields
+                    or context.schema_id not in type_fields[selection.name.value]
                 ):
                     continue
 

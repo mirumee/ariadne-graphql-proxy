@@ -19,7 +19,7 @@ from graphql import (
     GraphQLWrappingType,
 )
 
-from .copy_schema import (
+from .copy import (
     copy_argument,
     copy_arguments,
     copy_field,

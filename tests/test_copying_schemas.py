@@ -27,7 +27,7 @@ from graphql import (
     parse,
 )
 
-from ariadne_graphql_proxy.copy_schema import (
+from ariadne_graphql_proxy.copy import (
     copy_argument_type,
     copy_arguments,
     copy_directive,
@@ -355,7 +355,7 @@ def test_copy_schema_types_calls_correct_copy_method_for_type(
     mocker, graphql_type, expected_method_name
 ):
     mocked_copy_method = mocker.patch(
-        f"ariadne_graphql_proxy.copy_schema.{expected_method_name}"
+        f"ariadne_graphql_proxy.copy.{expected_method_name}"
     )
 
     copy_schema_types(GraphQLSchema(types=[graphql_type]))
@@ -705,7 +705,6 @@ def test_copy_argument_type_returns_correct_scalar_type(field_type, expected):
     ],
 )
 def test_copy_argument_type_returns_correct_related_type(field_type, duplicated_type):
-
     assert (
         copy_argument_type({field_type.name: duplicated_type}, field_type)
         == duplicated_type
@@ -786,7 +785,6 @@ def test_copy_input_type():
 
 
 def test_copy_input_type_returns_input_without_excluded_fields():
-
     input_type = GraphQLInputObjectType(
         name="InputType",
         fields={
@@ -917,7 +915,7 @@ def test_copy_object_type_returns_new_object_with_implemented_interface():
     assert copied_type.interfaces[0] is not interface
     assert copied_type.interfaces[0] is duplicated_interface
 
-    
+
 def test_copy_interface_type_returns_new_interface_without_excluded_fields():
     graphql_type = GraphQLInterfaceType(
         name="TypeName",
@@ -990,9 +988,7 @@ def test_copy_directives_calls_copy_directive_for_each_object(mocker):
     directive2 = GraphQLDirective(
         name="testDirective", locations=(DirectiveLocation.OBJECT,)
     )
-    mocked_copy_directive = mocker.patch(
-        "ariadne_graphql_proxy.copy_schema.copy_directive"
-    )
+    mocked_copy_directive = mocker.patch("ariadne_graphql_proxy.copy.copy_directive")
 
     copy_directives({}, (directive1, directive2))
 
@@ -1094,3 +1090,39 @@ def test_copy_directive_returns_directive_without_excluded_arg():
     assert isinstance(copied_directive, GraphQLDirective)
     assert copied_directive is not directive
     assert "arg1" not in copied_directive.args
+
+
+def test_copy_schema_with_fields_using_custom_scalars(gql):
+    schema_str = gql(
+        """
+        scalar Custom
+
+        type Query {
+            testQuery: Custom!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+    copied_schema = copy_schema(schema)
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
+    assert "Custom" in copied_schema.type_map
+
+
+def test_copy_schema_with_fields_arguments_using_custom_scalars(gql):
+    schema_str = gql(
+        """
+        scalar Custom
+
+        type Query {
+            testQuery(arg: Custom!): String!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+    copied_schema = copy_schema(schema)
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
+    assert "Custom" in copied_schema.type_map

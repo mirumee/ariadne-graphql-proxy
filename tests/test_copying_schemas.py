@@ -1092,7 +1092,7 @@ def test_copy_directive_returns_directive_without_excluded_arg():
     assert "arg1" not in copied_directive.args
 
 
-def test_copy_schema_with_fields_using_custom_scalars(gql):
+def test_copy_schema_with_field_returning_custom_scalars(gql):
     schema_str = gql(
         """
         scalar Custom
@@ -1110,7 +1110,7 @@ def test_copy_schema_with_fields_using_custom_scalars(gql):
     assert "Custom" in copied_schema.type_map
 
 
-def test_copy_schema_with_fields_arguments_using_custom_scalars(gql):
+def test_copy_schema_with_field_arguments_as_custom_scalars(gql):
     schema_str = gql(
         """
         scalar Custom
@@ -1126,3 +1126,31 @@ def test_copy_schema_with_fields_arguments_using_custom_scalars(gql):
     assert isinstance(copied_schema, GraphQLSchema)
     assert copied_schema is not schema
     assert "Custom" in copied_schema.type_map
+
+
+def test_copy_schema_with_field_returning_union_type(gql):
+    schema_str = gql(
+        """
+        type Query {
+            testQuery: Result!
+        }
+
+        type User {
+            id: ID!
+            name: String!
+        }
+
+        type Comment {
+            id: ID!
+            message: String!
+        }
+
+        union Result = User | Comment
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+    copied_schema = copy_schema(schema)
+
+    assert isinstance(copied_schema, GraphQLSchema)
+    assert copied_schema is not schema
+    assert "Result" in copied_schema.type_map

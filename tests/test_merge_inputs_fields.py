@@ -1,7 +1,7 @@
 import pytest
 from graphql import GraphQLFloat, GraphQLInputField, GraphQLString
 
-from ariadne_graphql_proxy.merge import merge_input_fields
+from ariadne_graphql_proxy import merge_input_fields
 
 
 def test_merge_input_fields_returns_field():

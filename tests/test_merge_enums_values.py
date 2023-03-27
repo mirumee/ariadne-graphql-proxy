@@ -1,7 +1,7 @@
 import pytest
 from graphql import GraphQLEnumType, GraphQLEnumValue
 
-from ariadne_graphql_proxy.merge import merge_enums_values
+from ariadne_graphql_proxy import merge_enums_values
 
 
 def test_merge_enums_values_returns_enums_values_from_both_enums():

@@ -1,7 +1,7 @@
 import pytest
 from graphql import GraphQLScalarType
 
-from ariadne_graphql_proxy.merge import merge_scalars
+from ariadne_graphql_proxy import merge_scalars
 
 
 def test_merge_scalars_returns_merged_scalar():

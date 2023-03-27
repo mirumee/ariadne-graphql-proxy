@@ -6,7 +6,7 @@ from graphql import (
     GraphQLString,
 )
 
-from ariadne_graphql_proxy.merge import merge_inputs
+from ariadne_graphql_proxy import merge_inputs
 
 
 def test_merge_inputs_returns_input_with_fields_from_both_inputs():

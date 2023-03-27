@@ -12,7 +12,7 @@ from graphql import (
     GraphQLUnionType,
 )
 
-from ariadne_graphql_proxy.merge import merge_types
+from ariadne_graphql_proxy import merge_types
 
 
 @pytest.mark.parametrize(

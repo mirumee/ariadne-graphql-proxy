@@ -7,7 +7,7 @@ from graphql import (
     GraphQLString,
 )
 
-from ariadne_graphql_proxy.merge import merge_objects
+from ariadne_graphql_proxy import merge_objects
 
 
 def test_merge_objects_returns_object_with_fields_from_both_objects():

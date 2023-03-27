@@ -9,7 +9,7 @@ from graphql import (
     GraphQLString,
 )
 
-from ariadne_graphql_proxy.merge import merge_fields
+from ariadne_graphql_proxy import merge_fields
 
 
 def test_merge_fields_returns_field_with_arguments_from_both_fields():

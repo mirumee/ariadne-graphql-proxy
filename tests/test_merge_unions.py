@@ -8,7 +8,7 @@ from graphql import (
     GraphQLUnionType,
 )
 
-from ariadne_graphql_proxy.merge import merge_unions
+from ariadne_graphql_proxy import merge_unions
 
 type1 = GraphQLObjectType(
     name="Type1",

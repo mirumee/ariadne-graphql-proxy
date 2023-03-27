@@ -1,29 +1,7 @@
 import pytest
-from graphql import (
-    GraphQLArgument,
-    GraphQLEnumType,
-    GraphQLEnumValue,
-    GraphQLField,
-    GraphQLFloat,
-    GraphQLInputField,
-    GraphQLInputObjectType,
-    GraphQLInt,
-    GraphQLInterfaceType,
-    GraphQLList,
-    GraphQLNonNull,
-    GraphQLObjectType,
-    GraphQLScalarType,
-    GraphQLSchema,
-    GraphQLString,
-    GraphQLUnionType,
-    build_ast_schema,
-    parse,
-)
+from graphql import GraphQLSchema, build_ast_schema, parse
 
-from ariadne_graphql_proxy.merge import (
-    merge_schemas,
-    merge_type_maps,
-)
+from ariadne_graphql_proxy import merge_schemas
 
 
 @pytest.mark.parametrize(

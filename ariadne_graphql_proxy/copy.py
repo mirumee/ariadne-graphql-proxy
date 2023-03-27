@@ -101,13 +101,13 @@ def copy_schema_type(
     object_exclude_args: Optional[Dict[str, List[str]]] = None,
 ):
     if isinstance(graphql_type, GraphQLEnumType):
-        return copy_enum_type(
+        return copy_enum(
             graphql_type,
             object_exclude_fields=object_exclude_fields,
         )
 
     if isinstance(graphql_type, GraphQLObjectType):
-        return copy_object_type(
+        return copy_object(
             new_types,
             graphql_type,
             object_exclude_fields=object_exclude_fields,
@@ -115,17 +115,17 @@ def copy_schema_type(
         )
 
     if isinstance(graphql_type, GraphQLInputObjectType):
-        return copy_input_type(
+        return copy_input(
             new_types,
             graphql_type,
             object_exclude_fields=object_exclude_fields,
         )
 
     if isinstance(graphql_type, GraphQLScalarType):
-        return copy_scalar_type(graphql_type)
+        return copy_scalar(graphql_type)
 
     if isinstance(graphql_type, GraphQLInterfaceType):
-        return copy_interface_type(
+        return copy_interface(
             new_types,
             graphql_type,
             object_exclude_fields=object_exclude_fields,
@@ -133,12 +133,12 @@ def copy_schema_type(
         )
 
     if isinstance(graphql_type, GraphQLUnionType):
-        return copy_union_type(new_types, graphql_type, exclude_types)
+        return copy_union(new_types, graphql_type, exclude_types)
 
     raise TypeError(f"Can't copy unknown type '{repr(graphql_type)}'.")
 
 
-def copy_enum_type(graphql_type, object_exclude_fields: Optional[List[str]] = None):
+def copy_enum(graphql_type, object_exclude_fields: Optional[List[str]] = None):
     object_exclude_fields = object_exclude_fields if object_exclude_fields else []
     values = {
         name: val
@@ -153,7 +153,7 @@ def copy_enum_type(graphql_type, object_exclude_fields: Optional[List[str]] = No
     )
 
 
-def copy_object_type(
+def copy_object(
     new_types,
     graphql_type,
     object_exclude_fields: Optional[List[str]] = None,
@@ -273,7 +273,7 @@ def copy_argument_type(new_types, arg):
     raise TypeError(f"Can't copy argument of unknown type '{repr(arg)}'.")
 
 
-def copy_input_type(
+def copy_input(
     new_types, graphql_type, object_exclude_fields: Optional[List[str]] = None
 ):
     def thunk():
@@ -324,7 +324,7 @@ def copy_input_field_type(new_types, field_type):
     raise TypeError(f"Can't copy input field of unknown type '{repr(field_type)}'.")
 
 
-def copy_scalar_type(scalar):
+def copy_scalar(scalar):
     return GraphQLScalarType(
         name=scalar.name,
         serialize=scalar.serialize,
@@ -338,7 +338,7 @@ def copy_scalar_type(scalar):
     )
 
 
-def copy_interface_type(
+def copy_interface(
     new_types: dict,
     interface_type: GraphQLInterfaceType,
     object_exclude_fields: Optional[List[str]] = None,
@@ -363,7 +363,7 @@ def copy_interface_type(
     )
 
 
-def copy_union_type(
+def copy_union(
     new_types: dict,
     union_type: GraphQLUnionType,
     exclude_types: Optional[List[str]] = None,

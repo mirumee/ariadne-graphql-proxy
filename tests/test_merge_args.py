@@ -8,9 +8,7 @@ from graphql import (
     GraphQLString,
 )
 
-from ariadne_graphql_proxy.merge import (
-    merge_args,
-)
+from ariadne_graphql_proxy import merge_args
 
 
 def test_merge_args_returns_dict_with_merged_args():

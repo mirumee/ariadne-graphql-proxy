@@ -1,10 +1,6 @@
-from graphql import (
-    GraphQLField,
-    GraphQLObjectType,
-    GraphQLString,
-)
+from graphql import GraphQLField, GraphQLObjectType, GraphQLString
 
-from ariadne_graphql_proxy.merge import merge_type_maps
+from ariadne_graphql_proxy import merge_type_maps
 
 
 def test_merge_type_maps_calls_copy_schema_type_if_object_is_not_present_in_one_map(

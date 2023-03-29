@@ -7,7 +7,7 @@ from graphql import (
     GraphQLString,
 )
 
-from ariadne_graphql_proxy.merge import merge_interfaces
+from ariadne_graphql_proxy import merge_interfaces
 
 
 def test_merge_interfaces_returns_interface_with_fields_from_both_interfaces():

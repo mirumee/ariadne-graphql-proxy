@@ -18,6 +18,7 @@ from .copy import (
     copy_schema_types,
     copy_union,
 )
+from .get_operation import get_operation
 from .merge import (
     merge_args,
     merge_enums,
@@ -56,6 +57,7 @@ __all__ = [
     "copy_schema_type",
     "copy_schema_types",
     "copy_union",
+    "get_operation",
     "merge_args",
     "merge_enums",
     "merge_enums_values",

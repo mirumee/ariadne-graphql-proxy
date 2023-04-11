@@ -34,6 +34,18 @@ from .merge import (
     merge_types,
     merge_unions,
 )
+from .print import (
+    print_document,
+    print_field,
+    print_field_arguments,
+    print_fragment,
+    print_operation,
+    print_operation_header,
+    print_operation_variables,
+    print_selection_set,
+    print_type_node,
+    print_value,
+)
 from .proxy_resolver import setup_root_resolver
 from .remote_schema import GraphQLRemoteSchema
 
@@ -71,5 +83,15 @@ __all__ = [
     "merge_type_maps",
     "merge_types",
     "merge_unions",
+    "print_document",
+    "print_field",
+    "print_field_arguments",
+    "print_fragment",
+    "print_operation",
+    "print_operation_header",
+    "print_operation_variables",
+    "print_selection_set",
+    "print_type_node",
+    "print_value",
     "setup_root_resolver",
 ]

@@ -94,7 +94,7 @@ def print_operation_header(operation_node: OperationDefinitionNode) -> str:
         query_header = f"{query_header}({variables})"
 
     if operation_node.directives:
-        raise NotImplementedError("TODO: operation definitions are not implemented yet")
+        raise NotImplementedError("TODO: operation directives are not implemented yet")
 
     return query_header
 

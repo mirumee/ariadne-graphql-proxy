@@ -14,6 +14,16 @@ from ..print import print_value
 def get_cache_key(
     obj: Any, info: GraphQLResolveInfo, arguments: Any, prefix: Optional[str] = None
 ) -> str:
+    """Builds cache key unique to this resolver call.
+
+    Used for resolvers that forward GraphQL calls to other GraphQL services.
+
+    Cache key is seeded with:
+
+    - `obj` representation
+    - fields from GraphQL query
+    - arguments values
+    """
     cache_hash = hashlib.md5(
         ",".join(
             [
@@ -30,6 +40,15 @@ def get_cache_key(
 
 
 def get_simple_cache_key(obj: Any, arguments: Any, prefix: Optional[str] = None) -> str:
+    """Builds cache key unique for given `obj` and `arguments`.
+
+    Used for resolvers that retrieve data from sources that
+
+    Cache key is seeded with:
+
+    - `obj` representation
+    - arguments values
+    """
     cache_hash = hashlib.md5(
         ",".join(
             [

@@ -21,9 +21,11 @@ def cached_resolver(
         @wraps(f)
         async def caching_resolver(obj: Any, info: GraphQLResolveInfo, **kwargs):
             if callable(cache_key):
-                cache_key = cache_key(info)
+                cache_key_final = cache_key(info)
+            else:
+                cache_key_final = cache_key
 
-            query_cache_key = get_cache_key(obj, info, kwargs, cache_key)
+            query_cache_key = get_cache_key(obj, info, kwargs, cache_key_final)
             cached_result = await cache.get(query_cache_key, NoCache)
             if cached_result is not NoCache:
                 return cached_result

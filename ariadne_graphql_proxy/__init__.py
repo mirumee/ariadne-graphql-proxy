@@ -48,6 +48,7 @@ from .print import (
 )
 from .proxy_resolver import setup_root_resolver
 from .remote_schema import GraphQLRemoteSchema
+from .resolvers import set_resolver
 
 __all__ = [
     "GraphQLRemoteSchema",
@@ -93,5 +94,6 @@ __all__ = [
     "print_selection_set",
     "print_type_node",
     "print_value",
+    "set_resolver",
     "setup_root_resolver",
 ]

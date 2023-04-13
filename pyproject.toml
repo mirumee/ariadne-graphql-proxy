@@ -9,7 +9,7 @@ version = "0.1.0"
 dependencies = ["graphql-core", "httpx", "ariadne"]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-mock"]
+test = ["pytest", "pytest-mock", "pytest-asyncio"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -47,11 +47,15 @@ from .print import (
     print_value,
 )
 from .proxy_resolver import setup_root_resolver
-from .remote_schema import GraphQLRemoteSchema
+from .proxy_schema import ProxySchema
+from .query_filter import QueryFilter, QueryFilterContext
+from .remote_schema import get_remote_schema
 from .resolvers import set_resolver
 
 __all__ = [
-    "GraphQLRemoteSchema",
+    "ProxySchema",
+    "QueryFilter",
+    "QueryFilterContext",
     "copy_argument",
     "copy_arguments",
     "copy_argument_type",
@@ -71,6 +75,7 @@ __all__ = [
     "copy_schema_types",
     "copy_union",
     "get_operation",
+    "get_remote_schema",
     "merge_args",
     "merge_enums",
     "merge_enums_values",

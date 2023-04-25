@@ -5,7 +5,7 @@ from typing import Any, Callable, Optional, Union
 from graphql import GraphQLResolveInfo
 
 from .backend import CacheBackend
-from .cache_key import get_cache_key
+from .cache_key import get_info_cache_key
 
 
 class NoCache:
@@ -25,7 +25,7 @@ def cached_resolver(
             else:
                 cache_key_final = cache_key
 
-            query_cache_key = get_cache_key(obj, info, kwargs, cache_key_final)
+            query_cache_key = get_info_cache_key(obj, info, kwargs, cache_key_final)
             cached_result = await cache.get(query_cache_key, NoCache)
             if cached_result is not NoCache:
                 return cached_result

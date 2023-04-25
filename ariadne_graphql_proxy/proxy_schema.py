@@ -1,6 +1,5 @@
 from asyncio import gather
 from functools import reduce
-from time import time_ns
 from typing import Dict, List, Optional, Set, Union
 
 from graphql import DocumentNode, GraphQLObjectType, GraphQLSchema, GraphQLWrappingType

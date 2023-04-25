@@ -11,6 +11,7 @@ from graphql import (
     FloatValueNode,
     FragmentDefinitionNode,
     FragmentSpreadNode,
+    GraphQLResolveInfo,
     IntValueNode,
     ListTypeNode,
     ListValueNode,
@@ -213,3 +214,7 @@ def print_value(value_node: ValueNode) -> str:
         return f"{'{'} {', '.join(fields)} {'}'}"
 
     raise ValueError(f"Unknown value node: {repr(value_node)}")
+
+
+def print_subquery(info: GraphQLResolveInfo) -> str:
+    pass

@@ -19,6 +19,7 @@ from .copy import (
     copy_union,
 )
 from .get_operation import get_operation
+from .graphql_proxy_resolver import GraphQLProxyResolver
 from .merge import (
     merge_args,
     merge_enums,
@@ -34,6 +35,7 @@ from .merge import (
     merge_types,
     merge_unions,
 )
+from .narrow_graphql_query import narrow_graphql_query
 from .print import (
     print_document,
     print_field,
@@ -46,13 +48,13 @@ from .print import (
     print_type_node,
     print_value,
 )
-from .proxy_resolver import setup_root_resolver
 from .proxy_schema import ProxySchema
 from .query_filter import QueryFilter, QueryFilterContext
 from .remote_schema import get_remote_schema
 from .resolvers import set_resolver
 
 __all__ = [
+    "GraphQLProxyResolver",
     "ProxySchema",
     "QueryFilter",
     "QueryFilterContext",
@@ -89,6 +91,7 @@ __all__ = [
     "merge_type_maps",
     "merge_types",
     "merge_unions",
+    "narrow_graphql_query",
     "print_document",
     "print_field",
     "print_field_arguments",

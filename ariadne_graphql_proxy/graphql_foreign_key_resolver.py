@@ -1,2 +1,0 @@
-class GraphQLForeignKeyResolver:
-    pass

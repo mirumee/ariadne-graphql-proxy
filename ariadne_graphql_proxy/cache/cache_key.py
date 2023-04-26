@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 from graphql import (
     FieldNode,
@@ -16,7 +16,7 @@ def get_info_cache_key(
     obj: Any,
     info: GraphQLResolveInfo,
     arguments: Optional[Dict[str, Any]],
-    prefix: Optional[str] = None,
+    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
 ) -> str:
     """Builds cache key unique to this resolver call using its info.
 
@@ -37,17 +37,20 @@ def get_info_cache_key(
             ]
         ).encode("utf-8")
     ).hexdigest()
-    if prefix:
-        return f"{prefix}_{cache_hash}"
+
+    cache_prefix = get_cache_prefix(info, prefix)
+    if cache_prefix:
+        return f"{cache_prefix}_{cache_hash}"
 
     return cache_hash
 
 
 def get_operation_cache_key(
     obj: Any,
+    info: GraphQLResolveInfo,
     operation: OperationDefinitionNode,
     arguments: Optional[Dict[str, Any]],
-    prefix: Optional[str] = None,
+    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
 ) -> str:
     """Builds cache key unique to this resolver call using its operation definition.
 
@@ -68,16 +71,19 @@ def get_operation_cache_key(
             ]
         ).encode("utf-8")
     ).hexdigest()
-    if prefix:
-        return f"{prefix}_{cache_hash}"
+
+    cache_prefix = get_cache_prefix(info, prefix)
+    if cache_prefix:
+        return f"{cache_prefix}_{cache_hash}"
 
     return cache_hash
 
 
 def get_simple_cache_key(
     obj: Any,
+    info: GraphQLResolveInfo,
     arguments: Optional[Dict[str, Any]],
-    prefix: Optional[str] = None,
+    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
 ) -> str:
     """Builds cache key unique for given `obj` and `arguments`.
 
@@ -96,10 +102,21 @@ def get_simple_cache_key(
             ]
         ).encode("utf-8")
     ).hexdigest()
-    if prefix:
-        return f"{prefix}_{cache_hash}"
+
+    cache_prefix = get_cache_prefix(info, prefix)
+    if cache_prefix:
+        return f"{cache_prefix}_{cache_hash}"
 
     return cache_hash
+
+
+def get_cache_prefix(
+    info: GraphQLResolveInfo,
+    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]],
+) -> Optional[str]:
+    if callable(prefix):
+        return prefix(info)
+    return prefix or None
 
 
 def get_obj_cache_seed(obj: Any) -> str:

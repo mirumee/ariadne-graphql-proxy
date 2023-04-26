@@ -3,6 +3,7 @@ from typing import Any, Callable, List, Optional, Union
 from graphql import GraphQLResolveInfo, OperationDefinitionNode
 from httpx import AsyncClient
 
+from .errors import raise_upstream_error
 from .narrow_graphql_query import narrow_graphql_query
 from .print import print_operation
 from .cache import CacheBackend, get_operation_cache_key
@@ -37,8 +38,14 @@ class GraphQLProxyResolver:
 
     async def __call__(self, obj: Any, info: GraphQLResolveInfo, **arguments) -> Any:
         operation_node, variables_used = narrow_graphql_query(info)
+
+        if operation_node.name:
+            operation_name = operation_node.name.value
+        else:
+            operation_name = None
+
         payload = {
-            "operationName": operation_node.name.value,
+            "operationName": operation_name,
             "query": print_operation(operation_node),
             "variables": {
                 argument: arguments[argument]
@@ -47,7 +54,7 @@ class GraphQLProxyResolver:
             },
         }
 
-        if self._cache and self._cache_key:
+        if self._cache:
             return await self.proxy_query_with_cache(obj, info, payload, operation_node)
 
         return await self.proxy_query(obj, info, payload)
@@ -66,6 +73,7 @@ class GraphQLProxyResolver:
 
         query_cache_key = get_operation_cache_key(
             obj,
+            info,
             operation_node,
             payload["variables"],
             cache_key_final,
@@ -75,7 +83,7 @@ class GraphQLProxyResolver:
         if cached_result is not NoCache:
             return cached_result
 
-        result = self.proxy_query(obj, info, payload)
+        result = await self.proxy_query(obj, info, payload)
 
         await self._cache.set(query_cache_key, result, self._cache_ttl)
         return result
@@ -90,7 +98,7 @@ class GraphQLProxyResolver:
         elif self._proxy_headers:
             proxy_headers = {
                 header: value
-                for header, value in info.context["headers"]
+                for header, value in info.context["headers"].items()
                 if header in self._proxy_headers
             }
         else:
@@ -98,10 +106,25 @@ class GraphQLProxyResolver:
 
         async with AsyncClient() as client:
             r = await client.post(
-                self.url,
-                json=payload,
+                self._url,
                 headers=proxy_headers,
+                json=payload,
             )
 
+            content_type = str(r.headers.get("content-type") or "")
+            if r.status_code != 200 or not content_type.startswith("application/json"):
+                raise_upstream_error(r)
+
             response_json = r.json()
-            return response_json["data"]
+
+            if not response_json.get("data"):
+                raise_upstream_error(r)
+
+            result_data = response_json["data"]
+            for field_name in info.path.as_list():
+                if field_name in result_data:
+                    result_data = result_data[field_name]
+                else:
+                    return None
+
+            return result_data

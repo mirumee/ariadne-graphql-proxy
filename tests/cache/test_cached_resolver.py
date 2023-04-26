@@ -1,5 +1,3 @@
-from unittest.mock import Mock
-
 import pytest
 from graphql import graphql
 

@@ -18,6 +18,7 @@ from .copy import (
     copy_schema_types,
     copy_union,
 )
+from .errors import UpstreamGraphQLError, raise_upstream_error
 from .get_operation import get_operation
 from .graphql_proxy_resolver import GraphQLProxyResolver
 from .merge import (
@@ -51,13 +52,14 @@ from .print import (
 from .proxy_schema import ProxySchema
 from .query_filter import QueryFilter, QueryFilterContext
 from .remote_schema import get_remote_schema
-from .resolvers import set_resolver
+from .resolvers import set_resolver, unset_resolver
 
 __all__ = [
     "GraphQLProxyResolver",
     "ProxySchema",
     "QueryFilter",
     "QueryFilterContext",
+    "UpstreamGraphQLError",
     "copy_argument",
     "copy_arguments",
     "copy_argument_type",
@@ -102,6 +104,8 @@ __all__ = [
     "print_selection_set",
     "print_type_node",
     "print_value",
+    "raise_upstream_error",
     "set_resolver",
     "setup_root_resolver",
+    "unset_resolver",
 ]

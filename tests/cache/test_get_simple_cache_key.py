@@ -8,7 +8,7 @@ from ariadne_graphql_proxy.cache import get_simple_cache_key
 
 
 def caching_resolver(obj, info, **kwargs):
-    info.context.append(get_simple_cache_key(obj, kwargs))
+    info.context.append(get_simple_cache_key(obj, info, kwargs))
     if isinstance(obj, dict):
         return obj.get(info.field_name)
     return getattr(obj, info.field_name)

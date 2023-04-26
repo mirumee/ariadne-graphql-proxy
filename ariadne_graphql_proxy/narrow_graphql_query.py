@@ -52,7 +52,11 @@ def narrow_graphql_query_by_path(
     field_name = path[0]
     for node in selection_set.selections:
         if isinstance(node, FieldNode):
-            node_name = node.alias.value if node.alias else node.name.value
+            if node.alias:
+                node_name = node.alias.value
+            else:
+                node_name = node.name.value
+
             if node_name == field_name:
                 find_variables_used_by_node(node, variables)
 

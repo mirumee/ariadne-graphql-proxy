@@ -2,7 +2,7 @@ from typing import Any, Optional
 
 import pytest
 from ariadne import make_executable_schema
-from httpx import Headers, Response
+from graphql import get_introspection_query, graphql_sync
 
 
 @pytest.fixture
@@ -33,6 +33,12 @@ def schema():
 
 
 @pytest.fixture
+def schema_json(schema):
+    schema_data = graphql_sync(schema, get_introspection_query()).data
+    return {"data": schema_data}
+
+
+@pytest.fixture
 def root_value():
     return {
         "basic": "Lorem Ipsum",
@@ -52,36 +58,3 @@ def root_value():
 @pytest.fixture
 def gql():
     return lambda x: x
-
-
-@pytest.fixture
-def httpx_response():
-    def create_response(
-        json: Optional[Any] = None,
-        text: Optional[Any] = None,
-        status_code: int = 200,
-    ) -> Response:
-        if json and text:
-            raise ValueError("'text' and 'json' arguments can't be combined")
-
-        if json:
-            return Response(
-                status_code,
-                headers=Headers(
-                    {"content-type": "application/json; charset=utf-8"},
-                    "utf-8",
-                ),
-                json=json,
-            )
-
-        if text:
-            return Response(
-                status_code,
-                headers=Headers(
-                    {"content-type": "text/plain; charset=utf-8"},
-                    "utf-8",
-                ),
-                text=text,
-            )
-
-    return create_response

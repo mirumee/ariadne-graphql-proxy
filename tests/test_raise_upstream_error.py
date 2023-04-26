@@ -1,10 +1,11 @@
 import pytest
+from httpx import Response
 
 from ariadne_graphql_proxy import UpstreamGraphQLError, raise_upstream_error
 
 
-def test_upstream_error_is_raised_from_text_response(httpx_response):
-    response = httpx_response(status_code=403, text="Forbidden")
+def test_upstream_error_is_raised_from_text_response():
+    response = Response(status_code=403, text="Forbidden")
 
     with pytest.raises(UpstreamGraphQLError) as exc_info:
         raise_upstream_error(response)
@@ -18,8 +19,8 @@ def test_upstream_error_is_raised_from_text_response(httpx_response):
     }
 
 
-def test_upstream_error_is_raised_from_json_response(httpx_response):
-    response = httpx_response(status_code=403, json={"detail": "Forbidden"})
+def test_upstream_error_is_raised_from_json_response():
+    response = Response(status_code=403, json={"detail": "Forbidden"})
 
     with pytest.raises(UpstreamGraphQLError) as exc_info:
         raise_upstream_error(response)
@@ -33,8 +34,8 @@ def test_upstream_error_is_raised_from_json_response(httpx_response):
     }
 
 
-def test_upstream_error_is_raised_from_graphql_response(httpx_response):
-    response = httpx_response(status_code=400, json={"errors": ["Error"]})
+def test_upstream_error_is_raised_from_graphql_response():
+    response = Response(status_code=400, json={"errors": ["Error"]})
 
     with pytest.raises(UpstreamGraphQLError) as exc_info:
         raise_upstream_error(response)

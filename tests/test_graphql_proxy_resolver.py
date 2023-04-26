@@ -4,6 +4,7 @@ from unittest.mock import Mock, AsyncMock
 
 import pytest
 from graphql import graphql
+from httpx import Response
 
 from ariadne_graphql_proxy import GraphQLProxyResolver, set_resolver, unset_resolver
 from ariadne_graphql_proxy.cache import InMemoryCache
@@ -19,7 +20,6 @@ def cache_backend():
 @pytest.mark.asyncio
 async def test_proxy_resolver_proxies_its_query_branch(
     mocker,
-    httpx_response,
     schema,
     root_value,
 ):
@@ -33,7 +33,7 @@ async def test_proxy_resolver_proxies_its_query_branch(
     root_value.pop("basic")
 
     post_mock = AsyncMock(
-        return_value=httpx_response({"data": {"basic": "Success"}}),
+        return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
     mocker.patch(
         "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post", post_mock
@@ -66,7 +66,6 @@ async def test_proxy_resolver_proxies_its_query_branch(
 @pytest.mark.asyncio
 async def test_proxy_resolver_proxies_specified_headers(
     mocker,
-    httpx_response,
     schema,
     root_value,
 ):
@@ -85,7 +84,7 @@ async def test_proxy_resolver_proxies_specified_headers(
     root_value.pop("basic")
 
     post_mock = AsyncMock(
-        return_value=httpx_response({"data": {"basic": "Success"}}),
+        return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
     mocker.patch(
         "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post", post_mock
@@ -120,7 +119,6 @@ async def test_proxy_resolver_proxies_specified_headers(
 @pytest.mark.asyncio
 async def test_proxy_resolver_proxies_headers_via_callable(
     mocker,
-    httpx_response,
     schema,
     root_value,
 ):
@@ -143,11 +141,9 @@ async def test_proxy_resolver_proxies_headers_via_callable(
     # Remove root value for basic field
     root_value.pop("basic")
 
-    post_mock = AsyncMock(
-        return_value=httpx_response({"data": {"basic": "Success"}}),
-    )
-    mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post", post_mock
+    post_mock = mocker.patch(
+        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
+        return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
 
     result = await graphql(
@@ -179,7 +175,6 @@ async def test_proxy_resolver_proxies_headers_via_callable(
 @pytest.mark.asyncio
 async def test_proxy_resolver_with_cache_caches_result(
     mocker,
-    httpx_response,
     cache_backend,
     schema,
     root_value,
@@ -193,17 +188,9 @@ async def test_proxy_resolver_with_cache_caches_result(
     # Remove root value for basic field
     root_value.pop("basic")
 
-    post_mock = Mock(
-        status_code=200,
-        headers={"content-type": "application/json"},
-        json=Mock(
-            return_value={"data": {"basic": "Success"}},
-        ),
-        return_value=httpx_response({"data": {"basic": "Success"}}),
-    )
-    mocker.patch(
+    post_mock = mocker.patch(
         "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
-        return_value=post_mock,
+        return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
 
     result = await graphql(
@@ -226,7 +213,7 @@ async def test_proxy_resolver_with_cache_caches_result(
     assert not result.errors
     assert result.data == {"basic": "Success"}
 
-    post_mock.json.assert_called_once()
+    post_mock.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -246,16 +233,9 @@ async def test_proxy_resolver_caches_results_with_ttl(
     # Remove root value for basic field
     root_value.pop("basic")
 
-    post_mock = Mock(
-        status_code=200,
-        headers={"content-type": "application/json"},
-        json=Mock(
-            return_value={"data": {"basic": "Success"}},
-        ),
-    )
-    mocker.patch(
+    post_mock = mocker.patch(
         "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
-        return_value=post_mock,
+        return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
 
     result = await graphql(
@@ -278,7 +258,7 @@ async def test_proxy_resolver_caches_results_with_ttl(
     assert not result.errors
     assert result.data == {"basic": "Success"}
 
-    post_mock.json.assert_called_once()
+    post_mock.assert_called_once()
 
     await asyncio.sleep(1)
 
@@ -292,13 +272,12 @@ async def test_proxy_resolver_caches_results_with_ttl(
     assert not result.errors
     assert result.data == {"basic": "Success"}
 
-    assert post_mock.json.call_count == 2
+    assert post_mock.call_count == 2
 
 
 @pytest.mark.asyncio
 async def test_proxy_resolver_handles_error_text_response(
     mocker,
-    httpx_response,
     cache_backend,
     schema,
     root_value,
@@ -314,7 +293,7 @@ async def test_proxy_resolver_handles_error_text_response(
 
     mocker.patch(
         "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
-        return_value=httpx_response(text="Not available", status_code=400),
+        return_value=Response(status_code=400, text="Not available"),
     )
 
     result = await graphql(
@@ -338,7 +317,6 @@ async def test_proxy_resolver_handles_error_text_response(
 @pytest.mark.asyncio
 async def test_proxy_resolver_handles_graphql_error_response(
     mocker,
-    httpx_response,
     cache_backend,
     schema,
     root_value,
@@ -354,7 +332,7 @@ async def test_proxy_resolver_handles_graphql_error_response(
 
     mocker.patch(
         "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
-        return_value=httpx_response(json={"errors": ["invalid"]}, status_code=400),
+        return_value=Response(status_code=400, json={"errors": ["invalid"]}),
     )
 
     result = await graphql(

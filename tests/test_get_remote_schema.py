@@ -12,7 +12,7 @@ def test_remote_schema_document_is_returned(httpx_mock, schema, schema_json):
     assert print_schema(remote_schema) == print_schema(schema)
 
 
-def test_error_in_remote_schema_fetch_is_raised(httpx_mock):
+def test_remote_schema_fetch_raises_http_response_error(httpx_mock):
     httpx_mock.add_response(status_code=404, text="Not found")
 
     with pytest.raises(HTTPStatusError):

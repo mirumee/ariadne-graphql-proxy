@@ -13,7 +13,7 @@ class NoCache:
     pass
 
 
-class GraphQLProxyResolver:
+class ProxyResolver:
     _url: str
     _proxy_headers: Optional[Union[bool, Callable, List[str]]]
 

@@ -1,12 +1,12 @@
 import asyncio
 
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock
 
 import pytest
 from graphql import graphql
 from httpx import Response
 
-from ariadne_graphql_proxy import GraphQLProxyResolver, set_resolver, unset_resolver
+from ariadne_graphql_proxy import ProxyResolver, set_resolver, unset_resolver
 from ariadne_graphql_proxy.cache import InMemoryCache
 
 GRAPHQL_URL = "http://upstream.example.com/graphql/"
@@ -23,7 +23,7 @@ async def test_proxy_resolver_proxies_its_query_branch(
     schema,
     root_value,
 ):
-    resolver = GraphQLProxyResolver(url=GRAPHQL_URL)
+    resolver = ProxyResolver(url=GRAPHQL_URL)
     set_resolver(schema, "Query", "basic", resolver)
 
     # Use default resolver for complex field
@@ -35,9 +35,7 @@ async def test_proxy_resolver_proxies_its_query_branch(
     post_mock = AsyncMock(
         return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
-    mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post", post_mock
-    )
+    mocker.patch("ariadne_graphql_proxy.proxy_resolver.AsyncClient.post", post_mock)
 
     result = await graphql(
         schema,
@@ -69,7 +67,7 @@ async def test_proxy_resolver_proxies_specified_headers(
     schema,
     root_value,
 ):
-    resolver = GraphQLProxyResolver(
+    resolver = ProxyResolver(
         url=GRAPHQL_URL,
         proxy_headers=["authorization"],
     )
@@ -86,9 +84,7 @@ async def test_proxy_resolver_proxies_specified_headers(
     post_mock = AsyncMock(
         return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
-    mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post", post_mock
-    )
+    mocker.patch("ariadne_graphql_proxy.proxy_resolver.AsyncClient.post", post_mock)
 
     result = await graphql(
         schema,
@@ -127,7 +123,7 @@ async def test_proxy_resolver_proxies_headers_via_callable(
             "x-auth": info.context["headers"].get("authorization"),
         }
 
-    resolver = GraphQLProxyResolver(
+    resolver = ProxyResolver(
         url=GRAPHQL_URL,
         proxy_headers=proxy_headers,
     )
@@ -142,7 +138,7 @@ async def test_proxy_resolver_proxies_headers_via_callable(
     root_value.pop("basic")
 
     post_mock = mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
+        "ariadne_graphql_proxy.proxy_resolver.AsyncClient.post",
         return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
 
@@ -179,7 +175,7 @@ async def test_proxy_resolver_with_cache_caches_result(
     schema,
     root_value,
 ):
-    resolver = GraphQLProxyResolver(
+    resolver = ProxyResolver(
         url=GRAPHQL_URL,
         cache=cache_backend,
     )
@@ -189,7 +185,7 @@ async def test_proxy_resolver_with_cache_caches_result(
     root_value.pop("basic")
 
     post_mock = mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
+        "ariadne_graphql_proxy.proxy_resolver.AsyncClient.post",
         return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
 
@@ -223,7 +219,7 @@ async def test_proxy_resolver_caches_results_with_ttl(
     schema,
     root_value,
 ):
-    resolver = GraphQLProxyResolver(
+    resolver = ProxyResolver(
         url=GRAPHQL_URL,
         cache=cache_backend,
         cache_ttl=1,
@@ -234,7 +230,7 @@ async def test_proxy_resolver_caches_results_with_ttl(
     root_value.pop("basic")
 
     post_mock = mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
+        "ariadne_graphql_proxy.proxy_resolver.AsyncClient.post",
         return_value=Response(status_code=200, json={"data": {"basic": "Success"}}),
     )
 
@@ -282,7 +278,7 @@ async def test_proxy_resolver_handles_error_text_response(
     schema,
     root_value,
 ):
-    resolver = GraphQLProxyResolver(
+    resolver = ProxyResolver(
         url=GRAPHQL_URL,
         cache=cache_backend,
     )
@@ -292,7 +288,7 @@ async def test_proxy_resolver_handles_error_text_response(
     root_value.pop("basic")
 
     mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
+        "ariadne_graphql_proxy.proxy_resolver.AsyncClient.post",
         return_value=Response(status_code=400, text="Not available"),
     )
 
@@ -321,7 +317,7 @@ async def test_proxy_resolver_handles_graphql_error_response(
     schema,
     root_value,
 ):
-    resolver = GraphQLProxyResolver(
+    resolver = ProxyResolver(
         url=GRAPHQL_URL,
         cache=cache_backend,
     )
@@ -331,7 +327,7 @@ async def test_proxy_resolver_handles_graphql_error_response(
     root_value.pop("basic")
 
     mocker.patch(
-        "ariadne_graphql_proxy.graphql_proxy_resolver.AsyncClient.post",
+        "ariadne_graphql_proxy.proxy_resolver.AsyncClient.post",
         return_value=Response(status_code=400, json={"errors": ["invalid"]}),
     )
 

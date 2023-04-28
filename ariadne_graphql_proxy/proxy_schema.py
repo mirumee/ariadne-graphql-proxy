@@ -1,7 +1,9 @@
 from asyncio import gather
 from functools import reduce
+from inspect import isawaitable
 from typing import Dict, List, Optional, Set, Union
 
+from ariadne.types import RootValue
 from graphql import DocumentNode, GraphQLObjectType, GraphQLSchema, GraphQLWrappingType
 from httpx import AsyncClient
 
@@ -14,15 +16,16 @@ from .standard_types import STANDARD_TYPES
 
 
 class ProxySchema:
-    def __init__(self):
+    def __init__(self, root_value: Optional[RootValue] = None):
         self.schemas: List[GraphQLSchema] = []
-        self.urls: List[str] = []
+        self.urls: List[Optional[str]] = []
         self.fields_map: Dict[str, Dict[str, Set[int]]] = {}
         self.fields_types: Dict[str, Dict[str, str]] = {}
         self.foreign_keys: Dict[str, Dict[str, List[List[str]]]] = {}
 
         self.schema: Optional[GraphQLSchema] = None
         self.query_filter: Optional[QueryFilter] = None
+        self.root_value: Optional[RootValue] = root_value
 
     def add_remote_schema(
         self,
@@ -49,7 +52,7 @@ class ProxySchema:
     def add_schema(
         self,
         schema: GraphQLSchema,
-        url: str,
+        url: Optional[str] = None,
         *,
         exclude_types: Optional[List[str]] = None,
         exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
@@ -164,7 +167,7 @@ class ProxySchema:
         operation_name: Optional[str],
         variables: Optional[dict],
         document: DocumentNode,
-    ) -> dict:
+    ) -> Optional[dict]:
         context_value["root_query"] = {
             "operationName": operation_name,
             "document": document,
@@ -173,8 +176,19 @@ class ProxySchema:
 
         queries = self.query_filter.split_query(document)
 
+        if callable(self.root_value):
+            root_value = self.root_value(
+                context_value, operation_name, variables, document
+            )
+            if isawaitable(root_value):
+                root_value = await root_value
+        elif self.root_value:
+            root_value = self.root_value.copy()
+        else:
+            root_value = {}
+
         if not queries:
-            return None
+            return root_value
 
         headers = {}
         if context_value.get("request"):
@@ -184,7 +198,7 @@ class ProxySchema:
 
         subqueries_data = await gather(
             *[
-                run_request(
+                self.fetch_data(
                     self.urls[schema_id],
                     headers,
                     {
@@ -194,24 +208,23 @@ class ProxySchema:
                     },
                 )
                 for schema_id, query_document in queries
+                if self.urls[schema_id]
             ]
         )
 
-        root_value = {}
         for subquery_data in subqueries_data:
             if subquery_data:
                 root_value.update(subquery_data)
 
-        return root_value
+        return root_value or None
 
+    async def fetch_data(self, url, headers, json):
+        async with AsyncClient() as client:
+            r = await client.post(
+                url,
+                headers=headers,
+                json=json,
+            )
 
-async def run_request(url, headers, json):
-    async with AsyncClient() as client:
-        r = await client.post(
-            url,
-            headers=headers,
-            json=json,
-        )
-
-        query_data = r.json()
-        return query_data.get("data")
+            query_data = r.json()
+            return query_data.get("data")

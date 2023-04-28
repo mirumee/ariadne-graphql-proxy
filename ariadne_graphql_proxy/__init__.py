@@ -20,7 +20,6 @@ from .copy import (
 )
 from .errors import UpstreamGraphQLError, raise_upstream_error
 from .get_operation import get_operation
-from .graphql_proxy_resolver import GraphQLProxyResolver
 from .merge import (
     merge_args,
     merge_enums,
@@ -49,13 +48,14 @@ from .print import (
     print_type_node,
     print_value,
 )
+from .proxy_resolver import ProxyResolver
 from .proxy_schema import ProxySchema
 from .query_filter import QueryFilter, QueryFilterContext
 from .remote_schema import get_remote_schema
 from .resolvers import set_resolver, unset_resolver
 
 __all__ = [
-    "GraphQLProxyResolver",
+    "ProxyResolver",
     "ProxySchema",
     "QueryFilter",
     "QueryFilterContext",

@@ -11,6 +11,7 @@ from graphql import (
     FloatValueNode,
     FragmentDefinitionNode,
     FragmentSpreadNode,
+    GraphQLResolveInfo,
     IntValueNode,
     ListTypeNode,
     ListValueNode,

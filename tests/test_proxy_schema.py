@@ -1,0 +1,450 @@
+import json
+from textwrap import dedent
+
+import pytest
+from graphql import parse, print_schema
+
+from ariadne_graphql_proxy import ProxySchema
+
+
+def test_local_schema_is_added_to_proxy(schema):
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+
+    final_schema = proxy_schema.get_final_schema()
+    assert print_schema(final_schema) == print_schema(schema)
+
+
+def test_remote_schema_is_added_to_proxy(httpx_mock, schema, schema_json):
+    httpx_mock.add_response(json=schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    final_schema = proxy_schema.get_final_schema()
+    assert print_schema(final_schema) == print_schema(schema)
+
+
+def test_local_and_proxy_schemas_are_added_to_proxy(
+    httpx_mock, schema, other_schema_json
+):
+    httpx_mock.add_response(json=other_schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    final_schema = proxy_schema.get_final_schema()
+    assert print_schema(final_schema)
+    assert len(final_schema.type_map["Query"].fields) == 4
+    assert "basic" in final_schema.type_map["Query"].fields
+    assert "complex" in final_schema.type_map["Query"].fields
+    assert "other" in final_schema.type_map["Query"].fields
+    assert "otherComplex" in final_schema.type_map["Query"].fields
+
+
+def test_multiple_local_schemas_are_added_to_proxy(schema, complex_schema):
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    proxy_schema.add_schema(complex_schema)
+
+    final_schema = proxy_schema.get_final_schema()
+    assert print_schema(final_schema)
+    assert len(final_schema.type_map["Query"].fields) == 2
+    assert "basic" in final_schema.type_map["Query"].fields
+    assert "complex" in final_schema.type_map["Query"].fields
+
+
+def test_multiple_proxy_schemas_are_added_to_proxy(
+    httpx_mock, schema_json, complex_schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(json=complex_schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/1/")
+    proxy_schema.add_remote_schema("http://graphql.example.com/2/")
+
+    final_schema = proxy_schema.get_final_schema()
+    assert print_schema(final_schema)
+    assert len(final_schema.type_map["Query"].fields) == 2
+    assert "basic" in final_schema.type_map["Query"].fields
+    assert "complex" in final_schema.type_map["Query"].fields
+
+
+def test_local_schema_can_be_retrieved_from_proxy(schema):
+    proxy_schema = ProxySchema()
+    schema_id = proxy_schema.add_schema(schema)
+
+    retrieved_schema = proxy_schema.get_sub_schema(schema_id)
+    assert print_schema(retrieved_schema) == print_schema(schema)
+
+
+def test_remote_schema_can_be_retrieved_from_proxy(httpx_mock, schema, schema_json):
+    httpx_mock.add_response(json=schema_json)
+
+    proxy_schema = ProxySchema()
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    retrieved_schema = proxy_schema.get_sub_schema(schema_id)
+    assert print_schema(retrieved_schema) == print_schema(schema)
+
+
+@pytest.mark.asyncio
+async def test_root_value_is_not_retrieved_for_local_schema(schema):
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { basic }"),
+    )
+
+    assert root_value is None
+
+
+@pytest.mark.asyncio
+async def test_custom_root_value_is_supported(schema):
+    proxy_schema = ProxySchema({"root": "test"})
+    proxy_schema.add_schema(schema)
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { basic }"),
+    )
+
+    assert root_value == {"root": "test"}
+
+
+@pytest.mark.asyncio
+async def test_custom_root_value_callable_supported(schema):
+    def get_root_value(*_):
+        return {"root": "sync"}
+
+    proxy_schema = ProxySchema(get_root_value)
+    proxy_schema.add_schema(schema)
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { basic }"),
+    )
+
+    assert root_value == {"root": "sync"}
+
+
+@pytest.mark.asyncio
+async def test_custom_root_value_async_callable_supported(schema):
+    async def get_root_value(*_):
+        return {"root": "async"}
+
+    proxy_schema = ProxySchema(get_root_value)
+    proxy_schema.add_schema(schema)
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { basic }"),
+    )
+
+    assert root_value == {"root": "async"}
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_remote_schema_fields_is_retrieved_from_upstream(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "complex": {
+                    "id": "123",
+                    "name": "Test",
+                },
+            },
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { complex { id name } }"),
+    )
+
+    assert root_value == {
+        "complex": {
+            "id": "123",
+            "name": "Test",
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_separate_remote_schemas_is_retrieved_from_upstream(
+    httpx_mock, schema_json, other_schema_json
+):
+    httpx_mock.add_response(url="http://graphql.example.com/1/", json=schema_json)
+    httpx_mock.add_response(url="http://graphql.example.com/2/", json=other_schema_json)
+    httpx_mock.add_response(
+        url="http://graphql.example.com/1/",
+        json={
+            "data": {
+                "complex": {
+                    "id": "123",
+                    "name": "Test",
+                },
+            },
+        },
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/2/",
+        json={
+            "data": {
+                "otherComplex": {
+                    "id": "321",
+                    "name": "Other",
+                    "group": {
+                        "id": "653",
+                    },
+                },
+            },
+        },
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/1/")
+    proxy_schema.add_remote_schema("http://graphql.example.com/2/")
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+              complex {
+                id
+                name
+              }
+              otherComplex {
+                id
+                name
+                group {
+                  id
+                }
+              } 
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "complex": {
+            "id": "123",
+            "name": "Test",
+        },
+        "otherComplex": {
+            "id": "321",
+            "name": "Other",
+            "group": {
+                "id": "653",
+            },
+        },
+    }
+
+    first_request = httpx_mock.get_requests(url="http://graphql.example.com/1/")[-1]
+    assert json.loads(first_request.content) == {
+        "operationName": "Query",
+        "variables": None,
+        "query": dedent(
+            """
+            query Query {
+              complex {
+                id
+                name
+              }
+            }
+            """
+        ).strip(),
+    }
+
+    second_request = httpx_mock.get_requests(url="http://graphql.example.com/2/")[-1]
+    assert json.loads(second_request.content) == {
+        "operationName": "Query",
+        "variables": None,
+        "query": dedent(
+            """
+            query Query {
+              otherComplex {
+                id
+                name
+                group {
+                  id
+                }
+              }
+            }
+            """
+        ).strip(),
+    }
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_foreign_key_field_swaps_query_content_with_id(
+    httpx_mock, schema_json, other_schema_json
+):
+    httpx_mock.add_response(url="http://graphql.example.com/1/", json=schema_json)
+    httpx_mock.add_response(url="http://graphql.example.com/2/", json=other_schema_json)
+    httpx_mock.add_response(
+        url="http://graphql.example.com/1/",
+        json={
+            "data": {
+                "complex": {
+                    "id": "123",
+                    "name": "Test",
+                },
+            },
+        },
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/2/",
+        json={
+            "data": {
+                "otherComplex": {
+                    "id": "321",
+                    "name": "Other",
+                    "group": {
+                        "id": "653",
+                    },
+                },
+            },
+        },
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/1/")
+    proxy_schema.add_remote_schema("http://graphql.example.com/2/")
+    proxy_schema.add_foreign_key("OtherComplex", "group", "id")
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+              complex {
+                id
+                name
+              }
+              otherComplex {
+                id
+                name
+                group {
+                  name
+                  rank
+                }
+              } 
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "complex": {
+            "id": "123",
+            "name": "Test",
+        },
+        "otherComplex": {
+            "id": "321",
+            "name": "Other",
+            "group": {
+                "id": "653",
+            },
+        },
+    }
+
+    first_request = httpx_mock.get_requests(url="http://graphql.example.com/1/")[-1]
+    assert json.loads(first_request.content) == {
+        "operationName": "Query",
+        "variables": None,
+        "query": dedent(
+            """
+            query Query {
+              complex {
+                id
+                name
+              }
+            }
+            """
+        ).strip(),
+    }
+
+    second_request = httpx_mock.get_requests(url="http://graphql.example.com/2/")[-1]
+    assert json.loads(second_request.content) == {
+        "operationName": "Query",
+        "variables": None,
+        "query": dedent(
+            """
+            query Query {
+              otherComplex {
+                id
+                name
+                group {
+                  id
+                }
+              }
+            }
+            """
+        ).strip(),
+    }
+
+
+@pytest.mark.asyncio
+async def test_root_value_excludes_delayed_field(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        url="http://graphql.example.com/1/",
+        json={
+            "data": {
+                "basic": "I'm in!",
+            },
+        },
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/1/")
+    proxy_schema.add_delayed_fields({"Query": ["complex"]})
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+              basic
+            }
+            """
+        ),
+    )
+
+    assert root_value == {"basic": "I'm in!"}

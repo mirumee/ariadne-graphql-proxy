@@ -4,11 +4,11 @@ import pytest
 from graphql import graphql_sync
 
 from ariadne_graphql_proxy import set_resolver
-from ariadne_graphql_proxy.cache import get_cache_key
+from ariadne_graphql_proxy.cache import get_info_cache_key
 
 
 def caching_resolver(obj, info, **kwargs):
-    info.context.append(get_cache_key(obj, info, kwargs))
+    info.context.append(get_info_cache_key(obj, info, kwargs))
     if isinstance(obj, dict):
         return obj.get(info.field_name)
     return getattr(obj, info.field_name)

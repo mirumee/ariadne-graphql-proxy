@@ -18,6 +18,7 @@ from .copy import (
     copy_schema_types,
     copy_union,
 )
+from .errors import UpstreamGraphQLError, raise_upstream_error
 from .get_operation import get_operation
 from .merge import (
     merge_args,
@@ -34,6 +35,7 @@ from .merge import (
     merge_types,
     merge_unions,
 )
+from .narrow_graphql_query import narrow_graphql_query
 from .print import (
     print_document,
     print_field,
@@ -46,12 +48,18 @@ from .print import (
     print_type_node,
     print_value,
 )
-from .proxy_resolver import setup_root_resolver
-from .remote_schema import GraphQLRemoteSchema
-from .resolvers import set_resolver
+from .proxy_resolver import ProxyResolver
+from .proxy_schema import ProxySchema
+from .query_filter import QueryFilter, QueryFilterContext
+from .remote_schema import get_remote_schema
+from .resolvers import set_resolver, unset_resolver
 
 __all__ = [
-    "GraphQLRemoteSchema",
+    "ProxyResolver",
+    "ProxySchema",
+    "QueryFilter",
+    "QueryFilterContext",
+    "UpstreamGraphQLError",
     "copy_argument",
     "copy_arguments",
     "copy_argument_type",
@@ -71,6 +79,7 @@ __all__ = [
     "copy_schema_types",
     "copy_union",
     "get_operation",
+    "get_remote_schema",
     "merge_args",
     "merge_enums",
     "merge_enums_values",
@@ -84,6 +93,7 @@ __all__ = [
     "merge_type_maps",
     "merge_types",
     "merge_unions",
+    "narrow_graphql_query",
     "print_document",
     "print_field",
     "print_field_arguments",
@@ -94,6 +104,8 @@ __all__ = [
     "print_selection_set",
     "print_type_node",
     "print_value",
+    "raise_upstream_error",
     "set_resolver",
     "setup_root_resolver",
+    "unset_resolver",
 ]

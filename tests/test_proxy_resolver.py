@@ -347,3 +347,55 @@ async def test_proxy_resolver_handles_graphql_error_response(
         },
     }
     assert result.data == {"basic": None}
+
+
+@pytest.mark.asyncio
+async def test_proxy_resolver_handles_graphql_partial_error_response(
+    mocker,
+    cache_backend,
+    schema,
+    root_value,
+):
+    resolver = ProxyResolver(
+        url=GRAPHQL_URL,
+        cache=cache_backend,
+    )
+    set_resolver(schema, "Query", "basic", resolver)
+
+    # Remove root value for basic field
+    root_value.pop("basic")
+
+    mocker.patch(
+        "ariadne_graphql_proxy.proxy_resolver.AsyncClient.post",
+        return_value=Response(
+            status_code=400,
+            json={
+                "data": {
+                    "basic": None,
+                },
+                "errors": ["invalid"],
+            },
+        ),
+    )
+
+    result = await graphql(
+        schema,
+        "{ basic }",
+        context_value={"headers": {}},
+        root_value=root_value,
+    )
+
+    assert result.errors
+    assert result.errors[0].message == "Upstream service error"
+    assert result.errors[0].extensions == {
+        "upstream_response": {
+            "status_code": 400,
+            "json": {
+                "data": {
+                    "basic": None,
+                },
+                "errors": ["invalid"],
+            },
+        },
+    }
+    assert result.data == {"basic": None}

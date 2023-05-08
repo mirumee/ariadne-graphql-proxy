@@ -117,7 +117,7 @@ class ProxyResolver:
 
             response_json = r.json()
 
-            if not response_json.get("data"):
+            if not response_json.get("data") or response_json.get("errors"):
                 raise_upstream_error(r)
 
             result_data = response_json["data"]

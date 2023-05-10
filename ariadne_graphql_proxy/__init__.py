@@ -1,3 +1,4 @@
+from .context_value import get_context_value
 from .copy import (
     copy_argument,
     copy_arguments,
@@ -19,6 +20,7 @@ from .copy import (
     copy_union,
 )
 from .errors import UpstreamGraphQLError, raise_upstream_error
+from .foreign_key_resolver import ForeignKeyResolver
 from .get_operation import get_operation
 from .merge import (
     merge_args,
@@ -55,6 +57,7 @@ from .remote_schema import get_remote_schema
 from .resolvers import set_resolver, unset_resolver
 
 __all__ = [
+    "ForeignKeyResolver",
     "ProxyResolver",
     "ProxySchema",
     "QueryFilter",
@@ -78,6 +81,7 @@ __all__ = [
     "copy_schema_type",
     "copy_schema_types",
     "copy_union",
+    "get_context_value",
     "get_operation",
     "get_remote_schema",
     "merge_args",

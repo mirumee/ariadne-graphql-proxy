@@ -123,5 +123,110 @@ def root_value():
 
 
 @pytest.fixture
+def store_schema():
+    return make_executable_schema(
+        """
+        type Query {
+            order(id: ID!): Order
+        }
+
+        type Order {
+            id: ID!
+            customer: String!
+            address: String!
+            country: String!
+        }
+
+        type Mutation {
+            login(username: String!, password: String!): String
+            orderCreate(
+                customer: String!
+                address: String!
+                country: String!
+            ): OrderCreate!
+        }
+
+        type OrderCreate {
+            order: Order
+            errors: [String!]
+        }
+        """
+    )
+
+
+@pytest.fixture
+def store_schema_json(store_schema):
+    schema_data = graphql_sync(store_schema, get_introspection_query()).data
+    return {"data": schema_data}
+
+
+@pytest.fixture
+def store_root_value():
+    order = {
+        "id": "5s87d6sa85f7asds",
+        "customer": "John Doe",
+        "address": "LongStrasse",
+        "country": "Midgar",
+    }
+
+    return {
+        "order": order,
+        "orderCreate": {
+            "order": order,
+            "errors": None,
+        },
+    }
+
+
+@pytest.fixture
+def order_create_schema():
+    return make_executable_schema(
+        """
+        type Query {
+            noop: Boolean
+        }
+
+        type Order {
+            id: ID!
+        }
+
+        type Mutation {
+            orderCreate(
+                customer: String!
+                address: String!
+                country: String!
+            ): OrderCreate!
+        }
+
+        type OrderCreate {
+            order: Order
+            errors: [String!]
+        }
+        """
+    )
+
+
+@pytest.fixture
+def order_create_schema_json(order_create_schema):
+    schema_data = graphql_sync(order_create_schema, get_introspection_query()).data
+    return {"data": schema_data}
+
+
+@pytest.fixture
+def order_create_root_value():
+    order = {
+        "id": "5s87d6sa85f7asds",
+    }
+
+    return {
+        "order": order,
+        "orderCreate": {
+            "order": order,
+            "errors": None,
+        },
+    }
+
+
+@pytest.fixture
 def gql():
     return lambda x: x

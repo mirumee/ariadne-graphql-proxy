@@ -92,7 +92,11 @@ class ProxyResolver:
         self, obj: Any, info: GraphQLResolveInfo, payload: dict
     ) -> dict:
         if self._proxy_headers is True:
-            proxy_headers = info.context["headers"]
+            authorization = info.context["headers"].get("authorization")
+            if authorization:
+                proxy_headers = {"authorization": authorization}
+            else:
+                proxy_headers = None
         elif callable(self._proxy_headers):
             proxy_headers = self._proxy_headers(obj, info, payload)
         elif self._proxy_headers:
@@ -107,7 +111,7 @@ class ProxyResolver:
         async with AsyncClient() as client:
             r = await client.post(
                 self._url,
-                headers=proxy_headers,
+                headers=proxy_headers or None,
                 json=payload,
             )
 
@@ -120,11 +124,13 @@ class ProxyResolver:
             if not response_json.get("data") or response_json.get("errors"):
                 raise_upstream_error(r)
 
-            result_data = response_json["data"]
-            for field_name in info.path.as_list():
-                if field_name in result_data:
-                    result_data = result_data[field_name]
-                else:
-                    return None
+            return self.get_field_data(info, response_json["data"])
 
-            return result_data
+    def get_field_data(self, info: GraphQLResolveInfo, data: dict) -> Optional[Any]:
+        for field_name in info.path.as_list():
+            if field_name in data:
+                data = data[field_name]
+            else:
+                return None
+
+        return data

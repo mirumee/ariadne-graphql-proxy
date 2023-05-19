@@ -340,6 +340,7 @@ query GetForeignKeyOrder($id: ID!) {
 
 Finally GraphQL's query executor implemented by the `graphql-core` library will combine both data from root resolver and data from field's resolver into final query result.
 
+
 ### Adding foreign key to schema
 
 We start with using the `add_foreign_key` method to tell `ProxySchema` to always request an `id` field when `order` field is queried on `CheckoutComplete`:
@@ -446,6 +447,30 @@ app = GraphQL(
 
 
 ## Proxying headers
+
+Ariadne GraphQL Proxy requires that `GraphQLResolveInfo.context` attribute is a dictionary containing `headers` key, which in itself is a `Dict[str, str]` dictionary.
+
+`get_context_value` utility importable form `ariadne_graphql_proxy` is a convenience utility which is compatible with Ariadne's ASGI application and returns a `dict` with `request` and `headers` keys. Header names are normalized to lowercase, eg.: `Authorization` header will be available as `context["headers"]["authorization"]` if it was included in request to the GraphQL server.
+
+
+### `ProxySchema`
+
+
+### `ForeignKeyResolver` and `ProxyResolver`
+
+Both foreign key and proxy resolvers constructors take `proxy_headers` as second option. This option controls which headers from `context["headers"]` are proxied to services and which aren't.
+
+If this option is not set, only `authorization` header is proxied, if it was sent to the proxy.
+
+If `proxy_headers` is a `List[str]`, its assumed to be a list of names of headers that should be proxied if sent by client.
+
+If `proxy_headers` is a callable, it will be called with three arguments:
+
+- `obj`: `Any` value that was passed to resolved field's first argument. 
+- `info`: a `GraphQLResolveInfo` object for field with proxy or foreign key resolver.
+- `payload`: a `dict` with GraphQL JSON payload that will be sent to a proxy server (`operationName`, `query`, `variables`).
+
+Callable should return `None` or `Dict[str, str]` with headers to send to other server.
 
 
 ## Cache framework

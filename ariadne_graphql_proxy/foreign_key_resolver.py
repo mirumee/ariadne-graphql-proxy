@@ -28,7 +28,7 @@ class ForeignKeyResolver(ProxyResolver):
         url: str,
         template: str,
         variables: Optional[Dict[str, str]] = None,
-        proxy_headers: Optional[Union[bool, Callable, List[str]]] = None,
+        proxy_headers: Union[bool, Callable, List[str]] = True,
         cache: Optional[CacheBackend] = None,
         cache_key: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
         cache_ttl: Optional[int] = None,

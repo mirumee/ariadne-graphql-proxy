@@ -53,6 +53,8 @@ app = GraphQL(
 
 For guide on using Ariadne GraphQL Proxy, please see the <GUIDE.md> file.
 
+> **Note:** Ariadne GraphQL Proxy is currently in prototyping stages. Library's API can and will change!
+
 
 ## Contributing
 
@@ -62,7 +64,7 @@ If you've found a bug or issue, feel free to open [GitHub issue](https://github.
 
 If you have any questions or feedback, don't hesitate to catch us on [GitHub discussions on main Ariadne repo](https://github.com/mirumee/ariadne/discussions/).
 
-Pull requests are also welcome! We only request that PRs providing new features and extending existing implementation are proceeded 
+Pull requests are also welcome! We only request that PRs providing new features and extending existing implementation are proceeded by discussion in dedicated GitHub issue with a proposal or on  [`ariadne/discussions`](https://github.com/mirumee/ariadne/discussions/).
 
 Also make sure you follow [@AriadneGraphQL](https://twitter.com/AriadneGraphQL) on Twitter for latest updates, news and random musings!
 

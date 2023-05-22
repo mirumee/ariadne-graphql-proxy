@@ -476,6 +476,8 @@ If `proxy_headers` is a callable, it will be called with three arguments:
 
 Callable should return `None` or `Dict[str, str]` with headers to send to other server.
 
+If `proxy_headers` is `None` or `False`, no headers are proxied to the other service.
+
 
 ## Cache framework
 

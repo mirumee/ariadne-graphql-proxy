@@ -395,7 +395,7 @@ set_resolver(final_schema, "CheckoutComplete", "order", fk_order_resolver)
 
 `ForeignKeyResolver` class requires two configuration options to work:
 
-- an  URL of GraphQL API to query to retrieve the related object.
+- an URL of GraphQL API to query to retrieve the related object.
 - The GraphQL query to use to retrieve the related object.
 
 The query provided to `ForeignKeyResolver` is a template. `__FIELDS` field in it is not magical feature of GraphQL - it is in fact a placeholder in template that is replaced with final requested fields before query is sent to the service. `__FIELDS` will be replaced with whatever fields were originally requested for `order`.

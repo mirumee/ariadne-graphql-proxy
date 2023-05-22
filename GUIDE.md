@@ -455,6 +455,10 @@ Ariadne GraphQL Proxy requires that `GraphQLResolveInfo.context` attribute is a 
 
 ### `ProxySchema`
 
+Proxy schema doesn't include any custom headers in requests used to introspect remote schemas.
+
+`root_resolver` includes `authorization` in header proxied requests if it's present in context's `headers` dictionary.
+
 
 ### `ForeignKeyResolver` and `ProxyResolver`
 

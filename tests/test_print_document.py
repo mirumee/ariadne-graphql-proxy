@@ -284,6 +284,46 @@ def test_document_with_string_arg_containing_quotes_is_printed():
     )
 
 
+def test_document_with_inline_fragments_is_printed():
+    document = parse(
+        """
+        query GetHello {
+            results {
+                id
+                ... on User {
+                    username
+                    email
+                }
+                ... on Comment {
+                    poster
+                    text
+                }
+            }
+        }
+        """
+    )
+    assert (
+        print_document(document)
+        == dedent(
+            """
+        query GetHello {
+          results {
+            id
+            ... on User {
+              username
+              email
+            }
+            ... on Comment {
+              poster
+              text
+            }
+          }
+        }
+        """
+        ).strip()
+    )
+
+
 def test_document_with_fragments_is_printed():
     document = parse(
         """

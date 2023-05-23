@@ -24,7 +24,7 @@ class ProxyResolver:
     def __init__(
         self,
         url: str,
-        proxy_headers: Optional[Union[bool, List[str]]] = None,
+        proxy_headers: Union[bool, Callable, List[str]] = True,
         cache: Optional[CacheBackend] = None,
         cache_key: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
         cache_ttl: Optional[int] = None,

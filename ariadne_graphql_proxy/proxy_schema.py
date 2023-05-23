@@ -168,6 +168,12 @@ class ProxySchema:
         variables: Optional[dict],
         document: DocumentNode,
     ) -> Optional[dict]:
+        if not self.query_filter:
+            raise RuntimeError(
+                "'get_final_schema' needs to be called to build final schema "
+                "before `root_resolver` will be available to use."
+            )
+
         context_value["root_query"] = {
             "operationName": operation_name,
             "document": document,

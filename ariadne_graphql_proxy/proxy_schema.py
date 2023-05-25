@@ -4,7 +4,13 @@ from inspect import isawaitable
 from typing import Dict, List, Optional, Set, Union
 
 from ariadne.types import RootValue
-from graphql import DocumentNode, GraphQLObjectType, GraphQLSchema, GraphQLWrappingType
+from graphql import (
+    DocumentNode,
+    GraphQLInterfaceType,
+    GraphQLObjectType,
+    GraphQLSchema,
+    GraphQLWrappingType,
+)
 from httpx import AsyncClient
 
 from .copy import copy_schema
@@ -85,7 +91,7 @@ class ProxySchema:
             if type_name in STANDARD_TYPES:
                 continue
 
-            if not isinstance(type_def, GraphQLObjectType):
+            if not isinstance(type_def, (GraphQLInterfaceType, GraphQLObjectType)):
                 continue
 
             if type_name not in self.fields_map:

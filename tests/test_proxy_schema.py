@@ -448,3 +448,103 @@ async def test_root_value_excludes_delayed_field(httpx_mock, schema_json):
     )
 
     assert root_value == {"basic": "I'm in!"}
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_splits_queries_inline_fragments_between_schemas(
+    httpx_mock,
+    search_schema_json,
+    search_root_value,
+    store_schema_json,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/search/", json=search_schema_json
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/store/", json=store_schema_json
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/search/",
+        json={"data": search_root_value},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/search/")
+    proxy_schema.add_remote_schema("http://graphql.example.com/store/")
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+              search(query: "test") {
+                ... on User {
+                    id
+                    url
+                    username
+                }
+                ... on Order {
+                    id
+                    url
+                    customer
+                }
+              }
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "search": [
+            {
+                "__typename": "User",
+                "url": "/u/aerith/3/",
+                "id": "3",
+                "username": "Aerith",
+                "email": "aerith@example.com",
+            },
+            {
+                "__typename": "Order",
+                "id": "5s87d6sa85f7asds",
+                "url": "/o/5s87d6sa85f7asds/",
+            },
+            {
+                "__typename": "User",
+                "url": "/u/bob/7/",
+                "id": "7",
+                "username": "Bob",
+                "email": "bob@example.com",
+            },
+        ],
+    }
+
+    first_request = httpx_mock.get_requests(url="http://graphql.example.com/search/")[
+        -1
+    ]
+    assert json.loads(first_request.content) == {
+        "operationName": "Query",
+        "variables": None,
+        "query": dedent(
+            """
+            query Query {
+              search(query: \"test\") {
+                ... on User {
+                  id
+                  url
+                  username
+                }
+                ... on Order {
+                  id
+                  url
+                }
+              }
+            }
+            """
+        ).strip(),
+    }
+
+    store_requests = httpx_mock.get_requests(url="http://graphql.example.com/store/")
+    assert len(store_requests) == 1

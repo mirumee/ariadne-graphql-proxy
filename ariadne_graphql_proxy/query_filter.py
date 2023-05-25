@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Tuple, cast
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 from graphql import (
     DocumentNode,
@@ -6,6 +6,7 @@ from graphql import (
     FragmentSpreadNode,
     FragmentDefinitionNode,
     GraphQLSchema,
+    InlineFragmentNode,
     NameNode,
     OperationDefinitionNode,
     SelectionSetNode,
@@ -57,9 +58,7 @@ class QueryFilter:
         for definition_node in document.definitions:
             if isinstance(definition_node, FragmentDefinitionNode):
                 fragment_node = cast(FragmentDefinitionNode, definition_node)
-                new_fragment = self.filter_fragment_node(fragment_node, context)
-                if new_fragment:
-                    context.fragments[new_fragment.name.value] = new_fragment
+                context.fragments[fragment_node.name.value] = fragment_node
 
         for definition_node in document.definitions:
             if isinstance(definition_node, OperationDefinitionNode):
@@ -74,57 +73,7 @@ class QueryFilter:
         if not definitions:
             return None
 
-        for fragment in context.fragments.values():
-            final_fragment = self.filter_fragment_node_fields(fragment, context)
-            if final_fragment:
-                definitions.append(final_fragment)
-
         return DocumentNode(definitions=tuple(definitions))
-
-    def filter_fragment_node(
-        self,
-        fragment_node: FragmentDefinitionNode,
-        context: QueryFilterContext,
-    ) -> Optional[FragmentDefinitionNode]:
-        type_name = fragment_node.type_condition.name.value.title()
-        if type_name not in self.fields_map:
-            return None
-
-        type_fields = self.fields_map[type_name]
-
-        new_selections = []
-        for selection in fragment_node.selection_set.selections:
-            if isinstance(selection, FragmentSpreadNode):
-                new_selections.append(selection)
-                continue
-
-            if (
-                selection.name.value not in type_fields
-                or context.schema_id not in type_fields[selection.name.value]
-            ):
-                continue
-
-            filtered_selection = self.filter_field_node(
-                selection,
-                type_name,
-                context,
-                filter_fragments=False,
-            )
-
-            if filtered_selection:
-                new_selections.append(filtered_selection)
-
-        if not new_selections:
-            return None
-
-        return FragmentDefinitionNode(
-            name=fragment_node.name,
-            type_condition=fragment_node.type_condition,
-            directives=fragment_node.directives,
-            selection_set=SelectionSetNode(
-                selections=tuple(new_selections),
-            ),
-        )
 
     def filter_operation_node(
         self,
@@ -147,17 +96,24 @@ class QueryFilter:
                     continue
 
                 filtered_selection = self.filter_field_node(
-                    selection,
-                    type_name,
-                    context,
-                    filter_fragments=True,
+                    selection, type_name, context
+                )
+
+                if filtered_selection:
+                    new_selections.append(filtered_selection)
+
+            if isinstance(selection, InlineFragmentNode):
+                filtered_selection = self.filter_inline_fragment_node(
+                    selection, type_name, context
                 )
 
                 if filtered_selection:
                     new_selections.append(filtered_selection)
 
             if isinstance(selection, FragmentSpreadNode):
-                new_selections.append(selection)
+                new_selections += self.filter_fragment_spread_node(
+                    selection, type_name, context
+                )
 
         if not new_selections:
             return None
@@ -178,7 +134,6 @@ class QueryFilter:
         field_node: FieldNode,
         schema_obj: str,
         context: QueryFilterContext,
-        filter_fragments: bool,
     ) -> Optional[FieldNode]:
         if not field_node.selection_set:
             return field_node
@@ -219,18 +174,24 @@ class QueryFilter:
                     continue
 
                 filtered_selection = self.filter_field_node(
-                    selection,
-                    type_name,
-                    context,
-                    filter_fragments=filter_fragments,
+                    selection, type_name, context
+                )
+
+                if filtered_selection:
+                    new_selections.append(filtered_selection)
+
+            if isinstance(selection, InlineFragmentNode):
+                filtered_selection = self.filter_inline_fragment_node(
+                    selection, type_name, context
                 )
 
                 if filtered_selection:
                     new_selections.append(filtered_selection)
 
             if isinstance(selection, FragmentSpreadNode):
-                if not filter_fragments or selection.name.value in context.fragments:
-                    new_selections.append(selection)
+                new_selections += self.filter_fragment_spread_node(
+                    selection, schema_obj, context
+                )
 
         if not new_selections:
             return None
@@ -244,53 +205,105 @@ class QueryFilter:
             selection_set=SelectionSetNode(selections=tuple(new_selections)),
         )
 
-    def filter_fragment_node_fields(
+    def filter_inline_fragment_node(
         self,
-        fragment_node: FragmentDefinitionNode,
+        fragment_node: InlineFragmentNode,
+        schema_obj: str,
         context: QueryFilterContext,
-    ) -> Optional[FragmentDefinitionNode]:
+    ) -> Optional[InlineFragmentNode]:
+        type_name = fragment_node.type_condition.name.value
+        type_fields = self.fields_map[type_name]
+
         new_selections = []
         for selection in fragment_node.selection_set.selections:
             if isinstance(selection, FieldNode):
-                new_field_node = self.filter_fragment_field_fragments(
-                    selection, context
+                if (
+                    selection.name.value not in type_fields
+                    or context.schema_id not in type_fields[selection.name.value]
+                ):
+                    continue
+
+                filtered_selection = self.filter_field_node(
+                    selection,
+                    type_name,
+                    context,
                 )
-                if new_field_node:
-                    new_selections.append(selection)
+
+                if filtered_selection:
+                    new_selections.append(filtered_selection)
+
+            if isinstance(selection, InlineFragmentNode):
+                filtered_selection = self.filter_inline_fragment_node(
+                    selection,
+                    type_name,
+                    context,
+                    filter_fragments=True,
+                )
+
+                if filtered_selection:
+                    new_selections.append(filtered_selection)
 
             if isinstance(selection, FragmentSpreadNode):
-                if selection.name.value in context.fragments:
-                    new_selections.append(selection)
+                new_selections += self.filter_fragment_spread_node(
+                    selection, schema_obj, context
+                )
 
         if not new_selections:
             return None
 
-        fragment_node.selection_set.selections = tuple(new_selections)
-        return fragment_node
+        return InlineFragmentNode(
+            type_condition=fragment_node.type_condition,
+            selection_set=SelectionSetNode(selections=tuple(new_selections)),
+        )
 
-    def filter_fragment_field_fragments(
+    def filter_fragment_spread_node(
         self,
-        field_node: FieldNode,
+        fragment_node: FragmentSpreadNode,
+        schema_obj: str,
         context: QueryFilterContext,
-    ) -> Optional[FieldNode]:
-        if not field_node.selection_set:
-            return field_node
+    ) -> List[Union[FieldNode, InlineFragmentNode]]:
+        fragment_name = fragment_node.name.value
+        fragment = context.fragments.get(fragment_name)
+
+        if not fragment:
+            return []
+
+        type_name = fragment.name.value
+        type_fields = self.fields_map[type_name]
 
         new_selections = []
-        for selection in field_node.selection_set.selections:
+
+        for selection in fragment_node.selection_set.selections:
             if isinstance(selection, FieldNode):
-                new_field_node = self.filter_fragment_field_fragments(
-                    selection, context
+                if (
+                    selection.name.value not in type_fields
+                    or context.schema_id not in type_fields[selection.name.value]
+                ):
+                    continue
+
+                filtered_selection = self.filter_field_node(
+                    selection,
+                    type_name,
+                    context,
                 )
-                if new_field_node:
-                    new_selections.append(selection)
+
+                if filtered_selection:
+                    new_selections.append(filtered_selection)
+
+            if isinstance(selection, InlineFragmentNode):
+                filtered_selection = self.filter_inline_fragment_node(
+                    selection,
+                    type_name,
+                    context,
+                    filter_fragments=True,
+                )
+
+                if filtered_selection:
+                    new_selections.append(filtered_selection)
 
             if isinstance(selection, FragmentSpreadNode):
-                if selection.name.value in context.fragments:
-                    new_selections.append(selection)
+                new_selections += self.filter_fragment_spread_node(
+                    selection, schema_obj, context
+                )
 
-        if not new_selections:
-            return None
-
-        field_node.selection_set.selections = tuple(new_selections)
-        return field_node
+        return new_selections

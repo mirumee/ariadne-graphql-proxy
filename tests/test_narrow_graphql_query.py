@@ -235,6 +235,165 @@ def test_unused_variables_are_stripped_from_narrowed_query():
     )
 
 
+def test_narrowed_query_traverses_inline_fragments():
+    narrowed_query, variables = narrow_graphql_query(
+        MockGraphQLResolveInfo(
+            ["search", "results", 0, "rank"],
+            """
+            query Test($query: String!, $start: Int!) {
+              search(query: $query) {
+                results {
+                  id
+                  ... on User {
+                    name
+                    email
+                    rank {
+                      id
+                      name
+                    }
+                  }
+                  ... on Message {
+                    content
+                    postedAt
+                  }
+                }
+              }
+            }
+            """,
+        )
+    )
+
+    assert variables == set(["query"])
+    assert (
+        print_operation(narrowed_query)
+        == dedent(
+            """
+        query Test($query: String!) {
+          search(query: $query) {
+            results {
+              ... on User {
+                rank {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        }
+        """
+        ).strip()
+    )
+
+
+def test_narrowed_query_traverses_branching_inline_fragments():
+    narrowed_query, variables = narrow_graphql_query(
+        MockGraphQLResolveInfo(
+            ["search", "results", 0, "rank"],
+            """
+            query Test($query: String!, $start: Int!) {
+              search(query: $query) {
+                results {
+                  id
+                  ... on User {
+                    name
+                    email
+                    rank {
+                      id
+                      name
+                    }
+                  }
+                  ... on Message {
+                    content
+                    postedAt
+                    rank {
+                      id
+                      name
+                    }
+                  }
+                }
+              }
+            }
+            """,
+        )
+    )
+
+    assert variables == set(["query"])
+    assert (
+        print_operation(narrowed_query)
+        == dedent(
+            """
+        query Test($query: String!) {
+          search(query: $query) {
+            results {
+              ... on User {
+                rank {
+                  id
+                  name
+                }
+              }
+              ... on Message {
+                rank {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        }
+        """
+        ).strip()
+    )
+
+
+def test_narrowed_query_includes_inline_fragments():
+    narrowed_query, variables = narrow_graphql_query(
+        MockGraphQLResolveInfo(
+            ["search", "results"],
+            """
+            query Test($query: String!, $start: Int!) {
+              search(query: $query) {
+                results {
+                  id
+                  ... on User {
+                    name
+                    email
+                  }
+                  ... on Message {
+                    content
+                    postedAt
+                  }
+                }
+              }
+            }
+            """,
+        )
+    )
+
+    assert variables == set(["query"])
+    assert (
+        print_operation(narrowed_query)
+        == dedent(
+            """
+        query Test($query: String!) {
+          search(query: $query) {
+            results {
+              id
+              ... on User {
+                name
+                email
+              }
+              ... on Message {
+                content
+                postedAt
+              }
+            }
+          }
+        }
+        """
+        ).strip()
+    )
+
+
 def test_narrowed_query_traverses_fragments():
     narrowed_query, variables = narrow_graphql_query(
         MockGraphQLResolveInfo(

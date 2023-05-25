@@ -228,5 +228,66 @@ def order_create_root_value():
 
 
 @pytest.fixture
+def search_schema():
+    return make_executable_schema(
+        """
+        type Query {
+            search(query: String!): [Result!]!
+        }
+
+        interface Result {
+            id: ID!
+            url: String!
+        }
+
+        type User implements Result {
+            id: ID!
+            url: String!
+            username: String!
+            email: String!
+        }
+
+        type Order implements Result {
+            id: ID!
+            url: String!
+        }
+        """
+    )
+
+
+@pytest.fixture
+def search_schema_json(search_schema):
+    schema_data = graphql_sync(search_schema, get_introspection_query()).data
+    return {"data": schema_data}
+
+
+@pytest.fixture
+def search_root_value():
+    return {
+        "search": [
+            {
+                "__typename": "User",
+                "url": "/u/aerith/3/",
+                "id": "3",
+                "username": "Aerith",
+                "email": "aerith@example.com",
+            },
+            {
+                "__typename": "Order",
+                "id": "5s87d6sa85f7asds",
+                "url": "/o/5s87d6sa85f7asds/",
+            },
+            {
+                "__typename": "User",
+                "url": "/u/bob/7/",
+                "id": "7",
+                "username": "Bob",
+                "email": "bob@example.com",
+            },
+        ]
+    }
+
+
+@pytest.fixture
 def gql():
     return lambda x: x

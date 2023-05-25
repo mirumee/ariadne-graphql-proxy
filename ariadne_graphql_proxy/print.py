@@ -11,7 +11,7 @@ from graphql import (
     FloatValueNode,
     FragmentDefinitionNode,
     FragmentSpreadNode,
-    GraphQLResolveInfo,
+    InlineFragmentNode,
     IntValueNode,
     ListTypeNode,
     ListValueNode,
@@ -143,6 +143,8 @@ def print_selection_set(selection_set: SelectionSetNode, *, indent: int = 2) -> 
     for selection in selection_set.selections:
         if isinstance(selection, FieldNode):
             selections.append(print_field(selection, indent=indent))
+        elif isinstance(selection, InlineFragmentNode):
+            selections.append(print_inline_fragment(selection, indent=indent))
         elif isinstance(selection, FragmentSpreadNode):
             fragment_name = selection.name.value
             selections.append(f"...{fragment_name}")
@@ -162,7 +164,8 @@ def print_field(field_node: FieldNode, *, indent: int = 2) -> str:
         field_str += f"({print_field_arguments(field_node)})"
 
     if field_node.selection_set:
-        field_str += f" {'{'}\n{print_selection_set(field_node.selection_set)}\n{'}'}"
+        selection = print_selection_set(field_node.selection_set, indent=indent)
+        field_str += f" {'{'}\n{selection}\n{'}'}"
 
     return field_str
 
@@ -214,3 +217,15 @@ def print_value(value_node: ValueNode) -> str:
         return f"{'{'} {', '.join(fields)} {'}'}"
 
     raise ValueError(f"Unknown value node: {repr(value_node)}")
+
+
+def print_inline_fragment(fragment_node: InlineFragmentNode, *, indent: int = 2) -> str:
+    type_name = fragment_node.type_condition.name.value
+
+    fragment_str = f"... on {type_name}"
+
+    if fragment_node.selection_set:
+        selection = print_selection_set(fragment_node.selection_set, indent=indent)
+        fragment_str += f" {'{'}\n{selection}\n{'}'}"
+
+    return fragment_str

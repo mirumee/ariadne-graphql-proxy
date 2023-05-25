@@ -1,6 +1,7 @@
 from typing import Dict, List, Set, Tuple
 
 from graphql import (
+    InlineFragmentNode,
     FieldNode,
     FragmentSpreadNode,
     FragmentDefinitionNode,
@@ -17,8 +18,13 @@ def narrow_graphql_query(
 ) -> Tuple[OperationDefinitionNode, Set[str]]:
     variables: List[str] = []
 
+    # Remove ints from path
+    clean_path = [
+        path_item for path_item in info.path.as_list() if not isinstance(path_item, int)
+    ]
+
     narrowed_selection_set = narrow_graphql_query_by_path(
-        info.path.as_list(),
+        clean_path,
         info.operation.selection_set,
         info.fragments,
         variables,
@@ -50,6 +56,9 @@ def narrow_graphql_query_by_path(
         return get_graphql_query_subset(selection_set, fragments, variables)
 
     field_name = path[0]
+
+    narrowed_inline_fragments = []
+
     for node in selection_set.selections:
         if isinstance(node, FieldNode):
             if node.alias:
@@ -81,6 +90,22 @@ def narrow_graphql_query_by_path(
                     ),
                 )
 
+        if isinstance(node, InlineFragmentNode):
+            fragment_selection = narrow_graphql_query_by_path(
+                path,
+                node.selection_set,
+                fragments,
+                variables,
+            )
+
+            if fragment_selection:
+                narrowed_inline_fragments.append(
+                    InlineFragmentNode(
+                        type_condition=node.type_condition,
+                        selection_set=fragment_selection,
+                    ),
+                )
+
         if isinstance(node, FragmentSpreadNode):
             fragment = fragments[node.name.value]
             fragment_selection = narrow_graphql_query_by_path(
@@ -92,6 +117,13 @@ def narrow_graphql_query_by_path(
 
             if fragment_selection:
                 return fragment_selection
+
+    if narrowed_inline_fragments:
+        return SelectionSetNode(
+            selections=tuple(narrowed_inline_fragments),
+        )
+
+    return None
 
 
 def get_graphql_query_subset(
@@ -120,6 +152,19 @@ def get_graphql_query_subset(
                     selection_set=node_selection_set,
                 ),
             )
+
+        if isinstance(node, InlineFragmentNode):
+            node_selection_set = get_graphql_query_subset(
+                node.selection_set, fragments, variables
+            )
+
+            if node_selection_set:
+                selections.append(
+                    InlineFragmentNode(
+                        type_condition=node.type_condition,
+                        selection_set=node_selection_set,
+                    ),
+                )
 
         if isinstance(node, FragmentSpreadNode):
             fragment = fragments[node.name.value]

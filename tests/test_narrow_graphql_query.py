@@ -1,9 +1,9 @@
 from textwrap import dedent
 from typing import Dict, List
 
-from graphql import FragmentDefinitionNode, OperationDefinitionNode, parse
+from graphql import FragmentDefinitionNode, OperationDefinitionNode, parse, print_ast
 
-from ariadne_graphql_proxy import narrow_graphql_query, print_operation
+from ariadne_graphql_proxy import narrow_graphql_query
 
 
 class MockGraphQLResolveInfoPath:
@@ -43,10 +43,10 @@ def test_shallow_query_is_narrowed_to_top_level_field():
 
     assert not variables
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
-        query {
+        {
           field
         }
         """
@@ -66,10 +66,10 @@ def test_single_top_field_query_is_narrowed_to_top_level_field_and_its_selection
 
     assert not variables
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
-        query {
+        {
           field {
             sub
             select {
@@ -95,10 +95,10 @@ def test_multiple_top_fields_query_is_narrowed_to_top_level_field_and_its_select
 
     assert not variables
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
-        query {
+        {
           field {
             sub
             select {
@@ -124,10 +124,10 @@ def test_query_is_narrowed_using_deep_path():
 
     assert not variables
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
-        query {
+        {
           field {
             select {
               id
@@ -152,10 +152,10 @@ def test_query_is_narrowed_using_two_levels_deep_path():
 
     assert not variables
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
-        query {
+        {
           field {
             select {
               id
@@ -180,10 +180,10 @@ def test_query_is_narrowed_to_leaf_field_using_deep_path():
 
     assert not variables
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
-        query {
+        {
           field {
             select {
               other
@@ -219,7 +219,7 @@ def test_unused_variables_are_stripped_from_narrowed_query():
 
     assert variables == set(["start"])
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
         query Test($start: Int!) {
@@ -265,7 +265,7 @@ def test_narrowed_query_traverses_inline_fragments():
 
     assert variables == set(["query"])
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
         query Test($query: String!) {
@@ -319,7 +319,7 @@ def test_narrowed_query_traverses_branching_inline_fragments():
 
     assert variables == set(["query"])
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
         query Test($query: String!) {
@@ -371,7 +371,7 @@ def test_narrowed_query_includes_inline_fragments():
 
     assert variables == set(["query"])
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
         query Test($query: String!) {
@@ -424,7 +424,7 @@ def test_narrowed_query_traverses_fragments():
 
     assert variables == set(["start"])
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
         query Test($start: Int!) {
@@ -474,7 +474,7 @@ def test_narrowed_query_inlines_fragments():
 
     assert variables == set(["start"])
     assert (
-        print_operation(narrowed_query)
+        print_ast(narrowed_query)
         == dedent(
             """
         query Test($start: Int!) {

@@ -1,11 +1,10 @@
 from typing import Any, Callable, List, Optional, Union
 
-from graphql import GraphQLResolveInfo, OperationDefinitionNode
+from graphql import GraphQLResolveInfo, OperationDefinitionNode, print_ast
 from httpx import AsyncClient
 
 from .errors import raise_upstream_error
 from .narrow_graphql_query import narrow_graphql_query
-from .print import print_operation
 from .cache import CacheBackend, get_operation_cache_key
 
 
@@ -46,7 +45,7 @@ class ProxyResolver:
 
         payload = {
             "operationName": operation_name,
-            "query": print_operation(operation_node),
+            "query": print_ast(operation_node),
             "variables": {
                 argument: arguments[argument]
                 for argument in arguments

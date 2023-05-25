@@ -7,10 +7,10 @@ from graphql import (
     OperationDefinitionNode,
     SelectionSetNode,
     parse,
+    print_ast,
 )
 
 from .proxy_resolver import ProxyResolver
-from .print import print_operation
 from .cache import CacheBackend
 
 
@@ -65,7 +65,7 @@ class ForeignKeyResolver(ProxyResolver):
 
         payload = {
             "operationName": self._operation_name,
-            "query": print_operation(operation_node),
+            "query": print_ast(operation_node),
             "variables": variables,
         }
 

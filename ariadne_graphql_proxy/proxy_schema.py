@@ -10,12 +10,12 @@ from graphql import (
     GraphQLObjectType,
     GraphQLSchema,
     GraphQLWrappingType,
+    print_ast,
 )
 from httpx import AsyncClient
 
 from .copy import copy_schema
 from .merge import merge_schemas
-from .print import print_document
 from .query_filter import QueryFilter
 from .remote_schema import get_remote_schema
 from .standard_types import STANDARD_TYPES
@@ -215,7 +215,7 @@ class ProxySchema:
                     headers,
                     {
                         "operationName": operation_name,
-                        "query": print_document(query_document),
+                        "query": print_ast(query_document),
                         "variables": variables,
                     },
                 )

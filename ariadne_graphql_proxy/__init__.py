@@ -38,19 +38,6 @@ from .merge import (
     merge_unions,
 )
 from .narrow_graphql_query import narrow_graphql_query
-from .print import (
-    print_document,
-    print_field,
-    print_field_arguments,
-    print_fragment,
-    print_inline_fragment,
-    print_operation,
-    print_operation_header,
-    print_operation_variables,
-    print_selection_set,
-    print_type_node,
-    print_value,
-)
 from .proxy_resolver import ProxyResolver
 from .proxy_schema import ProxySchema
 from .query_filter import QueryFilter, QueryFilterContext
@@ -99,17 +86,6 @@ __all__ = [
     "merge_types",
     "merge_unions",
     "narrow_graphql_query",
-    "print_document",
-    "print_field",
-    "print_field_arguments",
-    "print_fragment",
-    "print_inline_fragment",
-    "print_operation",
-    "print_operation_header",
-    "print_operation_variables",
-    "print_selection_set",
-    "print_type_node",
-    "print_value",
     "raise_upstream_error",
     "set_resolver",
     "setup_root_resolver",

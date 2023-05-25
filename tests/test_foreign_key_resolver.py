@@ -321,7 +321,7 @@ def test_foreign_key_resolver_raises_error_if_template_defines_anonymous_operati
         ForeignKeyResolver(
             "http://graphql.example.com/store/",
             """
-            query {
+            {
                 order(id: $id) {
                     id
                 }

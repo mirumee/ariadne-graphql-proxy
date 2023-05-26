@@ -51,7 +51,7 @@ app = GraphQL(
 
 ## Usage guide
 
-For guide on using Ariadne GraphQL Proxy, please see the <GUIDE.md> file.
+For guide on using Ariadne GraphQL Proxy, please see the [GUIDE.md](./GUIDE.md) file.
 
 > **Note:** Ariadne GraphQL Proxy is currently in prototyping stages. Library's API can and will change!
 

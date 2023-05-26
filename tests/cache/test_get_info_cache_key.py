@@ -174,7 +174,7 @@ def test_fragments_are_expanded_for_cache_key(schema_with_cache, root_value):
     result = graphql_sync(
         schema_with_cache,
         """
-        query {
+        {
             complex {
                 id
                 name
@@ -189,7 +189,7 @@ def test_fragments_are_expanded_for_cache_key(schema_with_cache, root_value):
     result = graphql_sync(
         schema_with_cache,
         """
-        query {
+        {
             complex {
                 ... ComplexData
             }

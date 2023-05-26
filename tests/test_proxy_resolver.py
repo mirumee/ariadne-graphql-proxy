@@ -55,7 +55,7 @@ async def test_proxy_resolver_proxies_its_query_branch(
         headers=None,
         json={
             "operationName": None,
-            "query": "query {\n  basic\n}",
+            "query": "{\n  basic\n}",
             "variables": {},
         },
     )
@@ -106,7 +106,7 @@ async def test_proxy_resolver_proxies_specified_headers(
         headers={"authorization": auth_header},
         json={
             "operationName": None,
-            "query": "query {\n  basic\n}",
+            "query": "{\n  basic\n}",
             "variables": {},
         },
     )
@@ -162,7 +162,7 @@ async def test_proxy_resolver_proxies_headers_via_callable(
         headers={"x-auth": auth_header},
         json={
             "operationName": None,
-            "query": "query {\n  basic\n}",
+            "query": "{\n  basic\n}",
             "variables": {},
         },
     )

@@ -7,9 +7,8 @@ from graphql import (
     FragmentSpreadNode,
     GraphQLResolveInfo,
     OperationDefinitionNode,
+    print_ast,
 )
-
-from ..print import print_value
 
 
 def get_info_cache_key(
@@ -161,7 +160,7 @@ def get_flattened_field(
     if field_node.arguments:
         field_args = sorted(
             [
-                f"{argument.name.value}: " + print_value(argument.value)
+                f"{argument.name.value}: " + print_ast(argument.value)
                 for argument in field_node.arguments
             ]
         )

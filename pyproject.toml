@@ -4,12 +4,37 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ariadne_graphql_proxy"
-description = "Ariadne toolkit for building GraphQL proxies"
+description = "Ariadne toolkit for building GraphQL proxies."
+authors = [{ name = "Mirumee Software", email = "hello@mirumee.com" }]
+readme = "README.md"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: BSD License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
 version = "0.1.0"
-dependencies = ["graphql-core", "httpx", "ariadne"]
+dependencies = ["graphql-core>=3.2.0,<3.3", "httpx", "ariadne"]
 
 [project.optional-dependencies]
-test = ["pytest", "pytest-mock", "pytest-httpx", "pytest-asyncio"]
+test = [
+    "black",
+    "mypy",
+    "pytest",
+    "pytest-mock",
+    "pytest-httpx",
+    "pytest-asyncio",
+    "ruff",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311', 'py12']
 
 [tool.pytest.ini_options]
+asyncio_mode = "strict"
 testpaths = ["tests"]

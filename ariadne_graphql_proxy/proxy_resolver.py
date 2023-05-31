@@ -64,7 +64,14 @@ class ProxyResolver:
         info: GraphQLResolveInfo,
         payload: dict,
         operation_node: OperationDefinitionNode,
-    ) -> dict:
+    ) -> Any:
+        if not self._cache:
+            raise RuntimeError(
+                "proxy_query_with_cache requires ProxyResolver initialized with "
+                "cache argument."
+            )
+
+        cache_key_final: Optional[str] = None
         if callable(self._cache_key):
             cache_key_final = self._cache_key(info)
         else:
@@ -89,7 +96,7 @@ class ProxyResolver:
 
     async def proxy_query(
         self, obj: Any, info: GraphQLResolveInfo, payload: dict
-    ) -> dict:
+    ) -> Any:
         if self._proxy_headers is True:
             authorization = info.context["headers"].get("authorization")
             if authorization:

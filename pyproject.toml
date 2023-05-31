@@ -33,7 +33,7 @@ test = [
 
 [tool.black]
 line-length = 88
-target-version = ['py310', 'py11']
+target-version = ['py310', 'py311']
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

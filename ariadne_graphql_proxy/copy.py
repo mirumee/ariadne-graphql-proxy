@@ -74,7 +74,7 @@ def copy_schema_types(
     exclude_types = exclude_types if exclude_types else []
     exclude_args = exclude_args if exclude_args else {}
     exclude_fields = exclude_fields if exclude_fields else {}
-    new_types = {}
+    new_types: dict = {}
 
     for graphql_type in schema.type_map.values():
         if graphql_type.name in STANDARD_TYPES or graphql_type.name in exclude_types:

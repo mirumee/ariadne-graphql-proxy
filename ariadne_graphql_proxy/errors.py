@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 from graphql import GraphQLError
 from httpx import Response
 
@@ -7,7 +9,7 @@ class UpstreamGraphQLError(GraphQLError):
 
 
 def raise_upstream_error(response: Response):
-    upstream_response = {"status_code": response.status_code}
+    upstream_response: Dict[str, Any] = {"status_code": response.status_code}
     try:
         content_type = str(response.headers.get("content-type") or "")
         if content_type.startswith("application/json"):

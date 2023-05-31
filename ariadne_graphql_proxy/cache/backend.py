@@ -16,7 +16,7 @@ class CacheBackend:
 
 
 class InMemoryCache(CacheBackend):
-    _cache = Dict[str, Tuple[Any, Optional[int]]]
+    _cache: Dict[str, Tuple[Any, Optional[int]]]
 
     def __init__(self):
         self._cache = {}

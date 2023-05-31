@@ -1,10 +1,13 @@
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 from graphql import (
+    DocumentNode,
     FieldNode,
     FragmentSpreadNode,
     GraphQLResolveInfo,
+    NameNode,
     OperationDefinitionNode,
+    SelectionNode,
     SelectionSetNode,
     parse,
     print_ast,
@@ -34,10 +37,9 @@ class ForeignKeyResolver(ProxyResolver):
         cache_ttl: Optional[int] = None,
     ):
         parsed_template = parse(template)
-        validate_template(parsed_template)
 
-        self._template = parsed_template.definitions[0]
-        self._operation_name = self._template.name.value
+        self._template = validate_template(parsed_template)
+        self._operation_name = cast(NameNode, self._template.name).value
         self._path = find_path_in_template(self._template.selection_set)
 
         if variables is not None:
@@ -47,21 +49,21 @@ class ForeignKeyResolver(ProxyResolver):
 
         super().__init__(url, proxy_headers, cache, cache_key, cache_ttl)
 
-    async def __call__(self, data: Any, info: GraphQLResolveInfo) -> Any:
+    async def __call__(self, obj: Any, info: GraphQLResolveInfo, **arguments) -> Any:
         operation_node = make_final_operation(self._template, info)
 
-        if isinstance(data, dict):
-            obj = data.get(info.field_name)
+        if isinstance(obj, dict):
+            data = obj.get(info.field_name)
         else:
-            obj = getattr(data, info.field_name)
+            data = getattr(obj, info.field_name)
 
         variables = {}
         if self._variables:
             for attr_name, var_name in self._variables.items():
-                if isinstance(obj, dict):
-                    variables[var_name] = obj.get(attr_name)
+                if isinstance(data, dict):
+                    variables[var_name] = data.get(attr_name)
                 else:
-                    variables[var_name] = getattr(obj, attr_name)
+                    variables[var_name] = getattr(data, attr_name)
 
         payload = {
             "operationName": self._operation_name,
@@ -70,9 +72,11 @@ class ForeignKeyResolver(ProxyResolver):
         }
 
         if self._cache:
-            return await self.proxy_query_with_cache(obj, info, payload, operation_node)
+            return await self.proxy_query_with_cache(
+                data, info, payload, operation_node
+            )
 
-        return await self.proxy_query(obj, info, payload)
+        return await self.proxy_query(data, info, payload)
 
     def get_field_data(self, info: GraphQLResolveInfo, data: dict) -> Optional[Any]:
         for field_name in self._path:
@@ -84,7 +88,7 @@ class ForeignKeyResolver(ProxyResolver):
         return data
 
 
-def validate_template(template: OperationDefinitionNode):
+def validate_template(template: DocumentNode) -> OperationDefinitionNode:
     if len(template.definitions) != 1:
         raise ValueError("Query template must define single operation.")
 
@@ -104,6 +108,8 @@ def validate_template(template: OperationDefinitionNode):
             f"'{FIELDS_PLACEHOLDER}' "
             f"placeholder. It specifies {placeholder_count}."
         )
+
+    return template.definitions[0]
 
 
 def count_template_fields_placeholders(selection_set: SelectionSetNode) -> int:
@@ -163,9 +169,12 @@ def copy_selection_set(
         if isinstance(node, FieldNode) and node.name.value == "__FIELDS":
             for field in info.field_nodes:
                 if isinstance(field, FieldNode) and field.name.value == info.field_name:
-                    return copy_selection_set(field.selection_set, info)
+                    return copy_selection_set(
+                        cast(SelectionSetNode, field.selection_set),
+                        info,
+                    )
 
-    selections = []
+    selections: List[SelectionNode] = []
     for node in selection_set.selections:
         if isinstance(node, FieldNode):
             selections.append(copy_template_field(node, info))

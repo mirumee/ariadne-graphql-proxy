@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "ariadne_graphql_proxy"
+name = "ariadne-graphql-proxy"
 description = "Ariadne toolkit for building GraphQL proxies."
 authors = [{ name = "Mirumee Software", email = "hello@mirumee.com" }]
 readme = "README.md"

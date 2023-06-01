@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, List, Optional, Set, Tuple, cast
 
 from graphql import (
     DocumentNode,
@@ -9,6 +9,7 @@ from graphql import (
     InlineFragmentNode,
     NameNode,
     OperationDefinitionNode,
+    SelectionNode,
     SelectionSetNode,
 )
 
@@ -85,7 +86,7 @@ class QueryFilter:
             return None
 
         type_fields = self.fields_map[type_name]
-        new_selections = []
+        new_selections: List[SelectionNode] = []
 
         for selection in operation_node.selection_set.selections:
             if isinstance(selection, FieldNode):
@@ -95,20 +96,18 @@ class QueryFilter:
                 ):
                     continue
 
-                filtered_selection = self.filter_field_node(
-                    selection, type_name, context
-                )
+                field_selection = self.filter_field_node(selection, type_name, context)
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if field_selection:
+                    new_selections.append(field_selection)
 
             if isinstance(selection, InlineFragmentNode):
-                filtered_selection = self.filter_inline_fragment_node(
+                inline_fragment_selection = self.filter_inline_fragment_node(
                     selection, type_name, context
                 )
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if inline_fragment_selection:
+                    new_selections.append(inline_fragment_selection)
 
             if isinstance(selection, FragmentSpreadNode):
                 new_selections += self.filter_fragment_spread_node(
@@ -164,7 +163,7 @@ class QueryFilter:
         type_name = self.fields_types[schema_obj][field_name]
         type_fields = self.fields_map[type_name]
 
-        new_selections = []
+        new_selections: List[SelectionNode] = []
         for selection in field_node.selection_set.selections:
             if isinstance(selection, FieldNode):
                 if (
@@ -173,20 +172,18 @@ class QueryFilter:
                 ):
                     continue
 
-                filtered_selection = self.filter_field_node(
-                    selection, type_name, context
-                )
+                field_selection = self.filter_field_node(selection, type_name, context)
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if field_selection:
+                    new_selections.append(field_selection)
 
             if isinstance(selection, InlineFragmentNode):
-                filtered_selection = self.filter_inline_fragment_node(
+                inline_fragment_selection = self.filter_inline_fragment_node(
                     selection, type_name, context
                 )
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if inline_fragment_selection:
+                    new_selections.append(inline_fragment_selection)
 
             if isinstance(selection, FragmentSpreadNode):
                 new_selections += self.filter_fragment_spread_node(
@@ -214,7 +211,7 @@ class QueryFilter:
         type_name = fragment_node.type_condition.name.value
         type_fields = self.fields_map[type_name]
 
-        new_selections = []
+        new_selections: List[SelectionNode] = []
         for selection in fragment_node.selection_set.selections:
             if isinstance(selection, FieldNode):
                 if (
@@ -223,25 +220,18 @@ class QueryFilter:
                 ):
                     continue
 
-                filtered_selection = self.filter_field_node(
-                    selection,
-                    type_name,
-                    context,
-                )
+                field_selection = self.filter_field_node(selection, type_name, context)
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if field_selection:
+                    new_selections.append(field_selection)
 
             if isinstance(selection, InlineFragmentNode):
-                filtered_selection = self.filter_inline_fragment_node(
-                    selection,
-                    type_name,
-                    context,
-                    filter_fragments=True,
+                inline_fragment_selection = self.filter_inline_fragment_node(
+                    selection, type_name, context
                 )
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if inline_fragment_selection:
+                    new_selections.append(inline_fragment_selection)
 
             if isinstance(selection, FragmentSpreadNode):
                 new_selections += self.filter_fragment_spread_node(
@@ -261,7 +251,7 @@ class QueryFilter:
         fragment_node: FragmentSpreadNode,
         schema_obj: str,
         context: QueryFilterContext,
-    ) -> List[Union[FieldNode, InlineFragmentNode]]:
+    ) -> List[SelectionNode]:
         fragment_name = fragment_node.name.value
         fragment = context.fragments.get(fragment_name)
 
@@ -271,9 +261,8 @@ class QueryFilter:
         type_name = fragment.name.value
         type_fields = self.fields_map[type_name]
 
-        new_selections = []
-
-        for selection in fragment_node.selection_set.selections:
+        new_selections: List[SelectionNode] = []
+        for selection in fragment.selection_set.selections:
             if isinstance(selection, FieldNode):
                 if (
                     selection.name.value not in type_fields
@@ -281,25 +270,18 @@ class QueryFilter:
                 ):
                     continue
 
-                filtered_selection = self.filter_field_node(
-                    selection,
-                    type_name,
-                    context,
-                )
+                field_selection = self.filter_field_node(selection, type_name, context)
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if field_selection:
+                    new_selections.append(field_selection)
 
             if isinstance(selection, InlineFragmentNode):
-                filtered_selection = self.filter_inline_fragment_node(
-                    selection,
-                    type_name,
-                    context,
-                    filter_fragments=True,
+                inline_fragment_selection = self.filter_inline_fragment_node(
+                    selection, type_name, context
                 )
 
-                if filtered_selection:
-                    new_selections.append(filtered_selection)
+                if inline_fragment_selection:
+                    new_selections.append(inline_fragment_selection)
 
             if isinstance(selection, FragmentSpreadNode):
                 new_selections += self.filter_fragment_spread_node(

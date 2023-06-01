@@ -29,7 +29,7 @@ class QueryFilter:
         schemas: List[GraphQLSchema],
         fields_map: Dict[str, Dict[str, Set[int]]],
         fields_types: Dict[str, Dict[str, str]],
-        foreign_keys: Dict[str, Dict[str, List[List[str]]]],
+        foreign_keys: Dict[str, Dict[str, List[str]]],
     ):
         self.schema = schema
         self.schemas = schemas

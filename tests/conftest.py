@@ -1,5 +1,3 @@
-from typing import Any, Optional
-
 import pytest
 from ariadne import make_executable_schema
 from graphql import get_introspection_query, graphql_sync

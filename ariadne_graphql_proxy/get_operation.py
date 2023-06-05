@@ -1,4 +1,4 @@
-from typing import List, Optional, cast
+from typing import List, Optional
 
 from graphql import (
     DocumentNode,
@@ -21,7 +21,7 @@ def get_operation(
                 anonymous_operations += 1
 
     if not operations:
-        raise GraphQLError(f"Query did not contain any operations.")
+        raise GraphQLError("Query did not contain any operations.")
 
     if len(operations) == 1:
         operation = operations[0]

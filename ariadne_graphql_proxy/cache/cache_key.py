@@ -6,7 +6,9 @@ from graphql import (
     FragmentDefinitionNode,
     FragmentSpreadNode,
     GraphQLResolveInfo,
+    InlineFragmentNode,
     OperationDefinitionNode,
+    SelectionNode,
     print_ast,
 )
 
@@ -142,13 +144,17 @@ def get_operation_cache_seed(operation: OperationDefinitionNode) -> str:
 
 
 def get_flattened_node(
-    node: Union[FieldNode, FragmentSpreadNode],
+    node: SelectionNode,
     fragments: Dict[str, FragmentDefinitionNode],
 ) -> str:
     if isinstance(node, FieldNode):
         return get_flattened_field(node, fragments)
+    if isinstance(node, InlineFragmentNode):
+        return get_flattened_inline_fragment(node, fragments)
     if isinstance(node, FragmentSpreadNode):
         return get_flattened_fragment(node, fragments)
+
+    raise ValueError(f"Invalid SelectionNode: {type(node).__name__}")
 
 
 def get_flattened_field(
@@ -173,6 +179,20 @@ def get_flattened_field(
         flat_field += "{" + ",".join(sorted(selections)) + "}"
 
     return flat_field
+
+
+def get_flattened_inline_fragment(
+    node: InlineFragmentNode,
+    fragments: Dict[str, FragmentDefinitionNode],
+) -> str:
+    flat_fragment = f"... on {print_ast(node.type_condition)}"
+
+    selections = []
+    for child_node in node.selection_set.selections:
+        selections.append(get_flattened_node(child_node, fragments))
+
+    flat_fragment += "{" + ",".join(sorted(selections)) + "}"
+    return flat_fragment
 
 
 def get_flattened_fragment(

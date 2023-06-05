@@ -21,6 +21,12 @@ def schema_with_cache(schema):
     return schema
 
 
+@pytest.fixture
+def search_schema_with_cache(search_schema):
+    set_resolver(search_schema, "Query", "search", caching_resolver)
+    return search_schema
+
+
 def test_cache_key_is_created_for_leaf_field(schema_with_cache, root_value):
     context = []
 
@@ -160,6 +166,57 @@ def test_fields_arguments_order_has_no_effect_on_cache_key(
         schema_with_cache,
         "{ basic(other: false, arg: true) }",
         root_value=root_value,
+        context_value=context,
+    )
+    assert not result.errors
+
+    assert len(context) == 2
+    assert len(set(context)) == 1
+
+
+def test_inline_fragments_are_expanded_for_cache_key(
+    search_schema_with_cache, search_root_value
+):
+    context = []
+
+    result = graphql_sync(
+        search_schema_with_cache,
+        """
+        {
+            search(query: "test") {
+                id
+                ... on User {
+                    username
+                    email
+                }
+                ... on Order {
+                    url
+                }
+            }
+        }
+        """,
+        root_value=search_root_value,
+        context_value=context,
+    )
+    assert not result.errors
+
+    result = graphql_sync(
+        search_schema_with_cache,
+        """
+        {
+            search(query: "test") {
+                id
+                ... on User {
+                    username
+                    email
+                }
+                ... on Order {
+                    url
+                }
+            }
+        }
+        """,
+        root_value=search_root_value,
         context_value=context,
     )
     assert not result.errors

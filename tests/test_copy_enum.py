@@ -1,31 +1,4 @@
-import pytest
-from graphql import (
-    DirectiveLocation,
-    GraphQLArgument,
-    GraphQLBoolean,
-    GraphQLDirective,
-    GraphQLEnumType,
-    GraphQLEnumValue,
-    GraphQLField,
-    GraphQLFloat,
-    GraphQLID,
-    GraphQLInputField,
-    GraphQLInputObjectType,
-    GraphQLInt,
-    GraphQLInterfaceType,
-    GraphQLList,
-    GraphQLNamedType,
-    GraphQLNonNull,
-    GraphQLObjectType,
-    GraphQLScalarType,
-    GraphQLSchema,
-    GraphQLString,
-    GraphQLUnionType,
-    ScalarTypeDefinitionNode,
-    ScalarTypeExtensionNode,
-    build_ast_schema,
-    parse,
-)
+from graphql import GraphQLEnumType, GraphQLEnumValue
 
 from ariadne_graphql_proxy import copy_enum
 

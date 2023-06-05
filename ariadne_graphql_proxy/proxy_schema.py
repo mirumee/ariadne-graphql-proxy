@@ -27,7 +27,7 @@ class ProxySchema:
         self.urls: List[Optional[str]] = []
         self.fields_map: Dict[str, Dict[str, Set[int]]] = {}
         self.fields_types: Dict[str, Dict[str, str]] = {}
-        self.foreign_keys: Dict[str, Dict[str, List[List[str]]]] = {}
+        self.foreign_keys: Dict[str, Dict[str, List[str]]] = {}
 
         self.schema: Optional[GraphQLSchema] = None
         self.query_filter: Optional[QueryFilter] = None
@@ -190,7 +190,7 @@ class ProxySchema:
 
         if callable(self.root_value):
             root_value = self.root_value(
-                context_value, operation_name, variables, document
+                context_value, operation_name, variables, document  # type: ignore
             )
             if isawaitable(root_value):
                 root_value = await root_value

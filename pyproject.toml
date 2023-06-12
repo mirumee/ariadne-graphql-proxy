@@ -7,6 +7,7 @@ name = "ariadne-graphql-proxy"
 description = "Ariadne toolkit for building GraphQL proxies."
 authors = [{ name = "Mirumee Software", email = "hello@mirumee.com" }]
 readme = "README.md"
+license = { file = "LICENSE" }
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -42,10 +43,6 @@ test = [
 include = [
   "ariadne_graphql_proxy/**/*.py",
   "ariadne_graphql_proxy/py.typed",
-  "LICENSE",
-  "README.md",
-  "GUIDE.md",
-  "pyproject.toml",
 ]
 exclude = [
   "tests",

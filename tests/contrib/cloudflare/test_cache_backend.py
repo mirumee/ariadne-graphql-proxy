@@ -3,8 +3,8 @@ import json
 import pytest
 
 from ariadne_graphql_proxy.contrib.cloudflare import (
-    CloudFlareCacheBackend,
-    CloudFlareCacheBackendException,
+    CloudflareCacheBackend,
+    CloudflareCacheBackendException,
 )
 
 
@@ -24,7 +24,7 @@ def test_init_asserts_namespace_can_be_accessed_with_correct_url(
 ):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
 
-    CloudFlareCacheBackend(
+    CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -44,7 +44,7 @@ def test_init_asserts_namespace_can_be_accessed_with_correct_headers(
 ):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
 
-    CloudFlareCacheBackend(
+    CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -68,8 +68,8 @@ def test_init_raises_cloudflare_cache_backend_exception_for_unavailable_namespac
     }
     httpx_mock.add_response(method="GET", status_code=404, json=not_found_json)
 
-    with pytest.raises(CloudFlareCacheBackendException) as exc_info:
-        CloudFlareCacheBackend(
+    with pytest.raises(CloudflareCacheBackendException) as exc_info:
+        CloudflareCacheBackend(
             account_id="acc_id",
             namespace_id="kv_id",
             api_email="email",
@@ -89,7 +89,7 @@ def test_init_raises_cloudflare_cache_backend_exception_for_unavailable_namespac
 async def test_set_sends_request_to_correct_url(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -110,7 +110,7 @@ async def test_set_sends_request_to_correct_url(httpx_mock, list_keys_json):
 async def test_set_sends_request_with_correct_headers(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -129,7 +129,7 @@ async def test_set_sends_request_with_correct_headers(httpx_mock, list_keys_json
 async def test_set_sends_correct_payload_to_cache_value(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -150,7 +150,7 @@ async def test_set_sends_correct_payload_to_cache_value(httpx_mock, list_keys_js
 async def test_set_sends_request_with_provided_ttl(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -168,7 +168,7 @@ async def test_set_sends_request_with_provided_ttl(httpx_mock, list_keys_json):
 async def test_get_retrives_value_from_correct_url(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -189,7 +189,7 @@ async def test_get_retrives_value_from_correct_url(httpx_mock, list_keys_json):
 async def test_get_sends_request_with_correct_headers(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -208,7 +208,7 @@ async def test_get_sends_request_with_correct_headers(httpx_mock, list_keys_json
 async def test_get_returns_retrieved_value(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",
@@ -234,7 +234,7 @@ async def test_get_returns_default_value_for_404_response(httpx_mock, list_keys_
             "messages": [],
         },
     )
-    cache = CloudFlareCacheBackend(
+    cache = CloudflareCacheBackend(
         account_id="acc_id",
         namespace_id="kv_id",
         api_email="email",

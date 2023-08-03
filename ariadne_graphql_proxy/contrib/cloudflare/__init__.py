@@ -1,3 +1,3 @@
-from .cache_backend import CloudFlareCacheBackend, CloudFlareCacheBackendException
+from .cache_backend import CloudflareCacheBackend, CloudflareCacheBackendException
 
-__all__ = ["CloudFlareCacheBackend", "CloudFlareCacheBackendException"]
+__all__ = ["CloudflareCacheBackend", "CloudflareCacheBackendException"]

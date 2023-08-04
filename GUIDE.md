@@ -576,7 +576,7 @@ class CacheBackend:
 `CloudflareCacheBackend` uses Cloudflare's [key value storage](https://developers.cloudflare.com/workers/learning/how-kv-works/) for caching. It can be imported from `ariadne_graphql_proxy.contrib.cloudflare` and requires following arguments:
 
 - `account_id`: `str`: Id of Cloudflare account.
-- `namespace_id`: `str`: Id of Workers KV Namespace.
+- `namespace_id`: `str`: Id of worker's KV Namespace.
 - `headers`: `Optional[Dict[str, str]]`: Headers attached to every api call, defaults to `{}`.
 - `base_url`: `str`: Cloudflare API base url, defaults to `"https://api.cloudflare.com/client/v4"`.
 

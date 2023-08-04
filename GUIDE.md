@@ -591,7 +591,7 @@ cache = CloudflareCacheBackend(
 )
 ```
 
-`CloudflareCacheBackend` in it's `__init__` [lists existing keys](https://developers.cloudflare.com/api/operations/workers-kv-namespace-list-a-namespace'-s-keys) in given namespace to ensure it can be accessed, if this check fails it throws `CloudflareCacheError`. To store value it performs [PUT request](https://developers.cloudflare.com/api/operations/workers-kv-namespace-write-key-value-pair-with-metadata), and to retrieve saved value it uses [GET](https://developers.cloudflare.com/api/operations/workers-kv-namespace-read-key-value-pair).
+`CloudflareCacheBackend` [lists existing keys](https://developers.cloudflare.com/api/operations/workers-kv-namespace-list-a-namespace'-s-keys) in given namespace on initialization to ensure it can be accessed, if this check fails it throws `CloudflareCacheError`. To store value it performs [PUT request](https://developers.cloudflare.com/api/operations/workers-kv-namespace-write-key-value-pair-with-metadata), and to retrieve saved value it uses [GET](https://developers.cloudflare.com/api/operations/workers-kv-namespace-read-key-value-pair).
 
 
 ## `ProxySchema`

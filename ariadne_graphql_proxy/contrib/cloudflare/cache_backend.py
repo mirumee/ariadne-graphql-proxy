@@ -6,7 +6,7 @@ import httpx
 from ...cache import CacheBackend
 
 
-class CloudflareCacheBackendException(Exception):
+class CloudflareCacheError(Exception):
     def __init__(self, response: httpx.Response) -> None:
         self.response = response
         msg = (
@@ -41,7 +41,7 @@ class CloudflareCacheBackend(CacheBackend):
             )
 
         if not response.is_success or not response.json().get("success", False):
-            raise CloudflareCacheBackendException(response)
+            raise CloudflareCacheError(response)
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         async with httpx.AsyncClient(

@@ -4,7 +4,7 @@ import pytest
 
 from ariadne_graphql_proxy.contrib.cloudflare import (
     CloudflareCacheBackend,
-    CloudflareCacheBackendException,
+    CloudflareCacheError,
 )
 
 
@@ -53,9 +53,7 @@ def test_init_asserts_namespace_can_be_accessed_with_correct_headers(
     assert all(request.headers[key] == headers[key] for key in headers.keys())
 
 
-def test_init_raises_cloudflare_cache_backend_exception_for_unavailable_namespace(
-    httpx_mock,
-):
+def test_init_raises_cloudflare_cache_error_for_unavailable_namespace(httpx_mock):
     not_found_json = {
         "result": None,
         "success": False,
@@ -64,7 +62,7 @@ def test_init_raises_cloudflare_cache_backend_exception_for_unavailable_namespac
     }
     httpx_mock.add_response(method="GET", status_code=404, json=not_found_json)
 
-    with pytest.raises(CloudflareCacheBackendException) as exc_info:
+    with pytest.raises(CloudflareCacheError) as exc_info:
         CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     request = httpx_mock.get_request()

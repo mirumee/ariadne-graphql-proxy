@@ -25,11 +25,7 @@ def test_init_asserts_namespace_can_be_accessed_with_correct_url(
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
 
     CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
+        account_id="acc_id", namespace_id="kv_id", base_url="https://base.url"
     )
 
     request = httpx_mock.get_request()
@@ -39,22 +35,22 @@ def test_init_asserts_namespace_can_be_accessed_with_correct_url(
     )
 
 
+@pytest.mark.parametrize(
+    "headers",
+    (
+        {"X-Auth-Email": "email", "X-Auth-Key": "key"},
+        {"Authorization": "Bearer abcd"},
+    ),
+)
 def test_init_asserts_namespace_can_be_accessed_with_correct_headers(
-    httpx_mock, list_keys_json
+    headers, httpx_mock, list_keys_json
 ):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
 
-    CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
-    )
+    CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id", headers=headers)
 
     request = httpx_mock.get_request()
-    assert request.headers["X-Auth-Email"] == "email"
-    assert request.headers["X-Auth-Key"] == "key"
+    assert all(request.headers[key] == headers[key] for key in headers.keys())
 
 
 def test_init_raises_cloudflare_cache_backend_exception_for_unavailable_namespace(
@@ -69,13 +65,7 @@ def test_init_raises_cloudflare_cache_backend_exception_for_unavailable_namespac
     httpx_mock.add_response(method="GET", status_code=404, json=not_found_json)
 
     with pytest.raises(CloudflareCacheBackendException) as exc_info:
-        CloudflareCacheBackend(
-            account_id="acc_id",
-            namespace_id="kv_id",
-            api_email="email",
-            api_key="key",
-            base_url="https://base.url",
-        )
+        CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     request = httpx_mock.get_request()
     assert exc_info.value.response
@@ -90,11 +80,7 @@ async def test_set_sends_request_to_correct_url(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
     cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
+        account_id="acc_id", namespace_id="kv_id", base_url="https://base.url"
     )
 
     await cache.set("key", "value")
@@ -106,36 +92,34 @@ async def test_set_sends_request_to_correct_url(httpx_mock, list_keys_json):
     )
 
 
+@pytest.mark.parametrize(
+    "headers",
+    (
+        {"X-Auth-Email": "email", "X-Auth-Key": "key"},
+        {"Authorization": "Bearer abcd"},
+    ),
+)
 @pytest.mark.asyncio
-async def test_set_sends_request_with_correct_headers(httpx_mock, list_keys_json):
+async def test_set_sends_request_with_correct_headers(
+    headers, httpx_mock, list_keys_json
+):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
     cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
+        account_id="acc_id", namespace_id="kv_id", headers=headers
     )
 
     await cache.set("key", "value")
 
     request = httpx_mock.get_request(method="PUT")
-    assert request.headers["X-Auth-Email"] == "email"
-    assert request.headers["X-Auth-Key"] == "key"
+    assert all(request.headers[key] == headers[key] for key in headers.keys())
 
 
 @pytest.mark.asyncio
 async def test_set_sends_correct_payload_to_cache_value(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
-    cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
-    )
+    cache = CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     await cache.set("key", "test_value")
 
@@ -150,13 +134,7 @@ async def test_set_sends_correct_payload_to_cache_value(httpx_mock, list_keys_js
 async def test_set_sends_request_with_provided_ttl(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="PUT", status_code=200)
-    cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
-    )
+    cache = CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     await cache.set("key", "value", 300)
 
@@ -169,11 +147,7 @@ async def test_get_retrives_value_from_correct_url(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
     cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
+        account_id="acc_id", namespace_id="kv_id", base_url="https://base.url"
     )
 
     await cache.get("key")
@@ -185,36 +159,34 @@ async def test_get_retrives_value_from_correct_url(httpx_mock, list_keys_json):
     )
 
 
+@pytest.mark.parametrize(
+    "headers",
+    (
+        {"X-Auth-Email": "email", "X-Auth-Key": "key"},
+        {"Authorization": "Bearer abcd"},
+    ),
+)
 @pytest.mark.asyncio
-async def test_get_sends_request_with_correct_headers(httpx_mock, list_keys_json):
+async def test_get_sends_request_with_correct_headers(
+    headers, httpx_mock, list_keys_json
+):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
     cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
+        account_id="acc_id", namespace_id="kv_id", headers=headers
     )
 
     await cache.get("key")
 
     request = httpx_mock.get_requests()[-1]
-    assert request.headers["X-Auth-Email"] == "email"
-    assert request.headers["X-Auth-Key"] == "key"
+    assert all(request.headers[key] == headers[key] for key in headers.keys())
 
 
 @pytest.mark.asyncio
 async def test_get_returns_retrieved_value(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
     httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
-    cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
-    )
+    cache = CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     value = await cache.get("key")
 
@@ -234,13 +206,7 @@ async def test_get_returns_default_value_for_404_response(httpx_mock, list_keys_
             "messages": [],
         },
     )
-    cache = CloudflareCacheBackend(
-        account_id="acc_id",
-        namespace_id="kv_id",
-        api_email="email",
-        api_key="key",
-        base_url="https://base.url",
-    )
+    cache = CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     value = await cache.get("key", "default")
 

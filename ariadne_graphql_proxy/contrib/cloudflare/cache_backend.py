@@ -1,5 +1,5 @@
 import json
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 import httpx
 
@@ -23,14 +23,13 @@ class CloudflareCacheBackend(CacheBackend):
         self,
         account_id: str,
         namespace_id: str,
-        api_email: str,
-        api_key: str,
+        headers: Optional[Dict[str, str]] = None,
         base_url: str = "https://api.cloudflare.com/client/v4",
     ) -> None:
         self.base_url = base_url
         self.account_id = account_id
         self.namespace_id = namespace_id
-        self.headers = {"X-Auth-Email": api_email, "X-Auth-Key": api_key}
+        self.headers = headers or {}
 
         self._assert_namespace_can_be_accessed()
 

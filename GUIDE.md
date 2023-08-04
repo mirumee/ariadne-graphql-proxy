@@ -571,6 +571,29 @@ class CacheBackend:
 ```
 
 
+### `CloudflareCacheBackend`
+
+`CloudflareCacheBackend` uses Cloudflare's [key value storage](https://developers.cloudflare.com/workers/learning/how-kv-works/) for caching. It can be imported from `ariadne_graphql_proxy.contrib.cloudflare` and requires following arguments:
+
+- `account_id`: `str`: Id of Cloudflare account.
+- `namespace_id`: `str`: Id of worker's KV Namespace.
+- `headers`: `Optional[Dict[str, str]]`: Headers attached to every api call, defaults to `{}`.
+- `base_url`: `str`: Cloudflare API base url, defaults to `"https://api.cloudflare.com/client/v4"`.
+
+```python
+from ariadne_graphql_proxy.contrib.cloudflare import CloudflareCacheBackend
+
+cache = CloudflareCacheBackend(
+    account_id="account id",
+    namespace_id="workers kv namespace id",
+    headers={"Authorization": "Bearer ..."},
+    base_url="https://cloudflare_api_url/client/v4",
+)
+```
+
+`CloudflareCacheBackend` [lists existing keys](https://developers.cloudflare.com/api/operations/workers-kv-namespace-list-a-namespace'-s-keys) in given namespace on initialization to ensure it can be accessed, if this check fails it throws `CloudflareCacheError`. To store value it performs [PUT request](https://developers.cloudflare.com/api/operations/workers-kv-namespace-write-key-value-pair-with-metadata), and to retrieve saved value it uses [GET](https://developers.cloudflare.com/api/operations/workers-kv-namespace-read-key-value-pair).
+
+
 ## `ProxySchema`
 
 `ProxySchema` class importable from `ariadne_graphql_proxy` is a factory class for proxy GraphQL schemas.

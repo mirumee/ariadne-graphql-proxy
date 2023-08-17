@@ -594,6 +594,42 @@ cache = CloudflareCacheBackend(
 `CloudflareCacheBackend` [lists existing keys](https://developers.cloudflare.com/api/operations/workers-kv-namespace-list-a-namespace'-s-keys) in given namespace on initialization to ensure it can be accessed, if this check fails it throws `CloudflareCacheError`. To store value it performs [PUT request](https://developers.cloudflare.com/api/operations/workers-kv-namespace-write-key-value-pair-with-metadata), and to retrieve saved value it uses [GET](https://developers.cloudflare.com/api/operations/workers-kv-namespace-read-key-value-pair).
 
 
+### `DynamoDBCacheBackend`
+
+`DynamoDBCacheBackend` uses [Amazon DynamoDB](https://aws.amazon.com/dynamodb) for storing cached values. It requires [`boto3`](https://github.com/boto/boto3) package, which can be installed using pip:
+
+```
+pip install ariadne-graphql-proxy[aws]
+```
+
+It can be imported from `ariadne_graphql_proxy.contrib.aws` and requires following arguments:
+
+- `table_name`: `str`: Name of DynamoDB table.
+- `partition_key`: `str`: Partition key, defaults to `key`.
+- `ttl_attribute`: `str`: TTL attribute, defaults to `ttl`.
+- `session`: `Optional[Session]`: Instance of `boto3.session.Session`, defaults to `Session()` which reads configuration values according to these [docs](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#guide-configuration).
+
+```python
+from ariadne_graphql_proxy.contrib.aws import DynamoDBCacheBackend
+from boto3.session import Session
+
+cache = DynamoDBCacheBackend(
+    table_name="table name",
+    partition_key="partition key",
+    ttl_attribute="ttl attribute",
+    session=Session(
+        aws_access_key_id="access key id",
+        aws_secret_access_key="secret",
+        region_name="region name",
+    ),
+)
+```
+
+`DynamoDBCacheBackend` checks status of given table on initialization to ensure it can be accessed, if this check fails due to unavailable table it throws `DynamoDBCacheError`.
+
+`DynamoDBCacheBackend` sets given ttl in [Unix epoch time format](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/time-to-live-ttl-before-you-start.html#time-to-live-ttl-before-you-start-formatting). Expired items are excluded from results, but they aren't deleted from table, this is left to [DynamoDB engine](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/howitworks-ttl.html).
+
+
 ## `ProxySchema`
 
 `ProxySchema` class importable from `ariadne_graphql_proxy` is a factory class for proxy GraphQL schemas.

@@ -32,6 +32,10 @@ test = [
     "ruff",
 ]
 
+aws = [
+  "boto3"
+]
+
 [project.urls]
 "Homepage" = "https://ariadnegraphql.org/"
 "Repository" = "https://github.com/mirumee/ariadne-graphql-proxy"

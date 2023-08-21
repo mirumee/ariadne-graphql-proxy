@@ -1,6 +1,7 @@
 import time
 from typing import Any, Optional
 
+from asgiref.sync import sync_to_async
 from boto3.dynamodb.conditions import Attr, Key
 from boto3.session import Session
 
@@ -41,20 +42,28 @@ class DynamoDBCacheBackend(CacheBackend):
                 f'Unable to access "{self.table_name}" table.'
             ) from exc
 
+    @sync_to_async
+    def _put_item(self, item: dict):
+        self.table.put_item(Item=item)
+
+    @sync_to_async
+    def _query_by_key(self, key: str, max_ttl: int) -> dict:
+        return self.table.query(
+            KeyConditionExpression=Key(self.partition_key).eq(key),
+            FilterExpression=Attr(self.ttl_attribute).gte(max_ttl)
+            | Attr(self.ttl_attribute).not_exists(),
+        )
+
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         item = {self.partition_key: key, self.value_attribute_name: value}
         if ttl:
             now = int(time.time())
             item[self.ttl_attribute] = now + ttl
 
-        self.table.put_item(Item=item)
+        await self._put_item(item=item)
 
     async def get(self, key: str, default: Any = None) -> Any:
-        response = self.table.query(
-            KeyConditionExpression=Key(self.partition_key).eq(key),
-            FilterExpression=Attr(self.ttl_attribute).gte(int(time.time()))
-            | Attr(self.ttl_attribute).not_exists(),
-        )
+        response = await self._query_by_key(key=key, max_ttl=int(time.time()))
 
         items = response.get("Items", [])
         if len(items) < 1:

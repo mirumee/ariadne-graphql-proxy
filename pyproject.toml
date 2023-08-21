@@ -35,7 +35,8 @@ test = [
 ]
 
 aws = [
-  "boto3"
+  "asgiref",
+  "boto3",
 ]
 
 [project.urls]

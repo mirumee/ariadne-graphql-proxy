@@ -23,13 +23,20 @@ dependencies = ["graphql-core>=3.2.0,<3.3", "httpx", "ariadne"]
 
 [project.optional-dependencies]
 test = [
-    "black",
-    "mypy",
-    "pytest",
-    "pytest-mock",
-    "pytest-httpx",
-    "pytest-asyncio",
-    "ruff",
+  "black",
+  "freezegun",
+  "moto",
+  "mypy",
+  "pytest",
+  "pytest-mock",
+  "pytest-httpx",
+  "pytest-asyncio",
+  "ruff",
+]
+
+aws = [
+  "asgiref",
+  "boto3",
 ]
 
 [project.urls]

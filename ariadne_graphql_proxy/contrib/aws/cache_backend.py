@@ -1,11 +1,16 @@
 import time
 from typing import Any, Optional
 
-from asgiref.sync import sync_to_async
-from boto3.dynamodb.conditions import Attr, Key
-from boto3.session import Session
-
 from ariadne_graphql_proxy.cache import CacheBackend
+
+try:
+    from asgiref.sync import sync_to_async
+    from boto3.dynamodb.conditions import Attr, Key
+    from boto3.session import Session
+except ImportError as import_exc:
+    raise ImportError(
+        "DynamoDBCacheBackend requires 'boto3' and 'asgiref' packages."
+    ) from import_exc
 
 
 class DynamoDBCacheError(Exception):

@@ -3,24 +3,27 @@ from typing import Dict, List, Optional, Set, Tuple, cast
 from graphql import (
     DocumentNode,
     FieldNode,
-    FragmentSpreadNode,
     FragmentDefinitionNode,
+    FragmentSpreadNode,
     GraphQLSchema,
     InlineFragmentNode,
     NameNode,
     OperationDefinitionNode,
     SelectionNode,
     SelectionSetNode,
+    VariableNode,
 )
 
 
 class QueryFilterContext:
     schema_id: int
     fragments: Dict[str, FragmentDefinitionNode]
+    variables: Set[str]
 
     def __init__(self, schema_id: int):
         self.schema_id = schema_id
         self.fragments = {}
+        self.variables = set()
 
 
 class QueryFilter:
@@ -38,21 +41,25 @@ class QueryFilter:
         self.fields_types = fields_types
         self.foreign_keys = foreign_keys
 
-    def split_query(self, document: DocumentNode) -> List[Tuple[int, DocumentNode]]:
-        queries: List[Tuple[int, DocumentNode]] = []
+    def split_query(
+        self, document: DocumentNode
+    ) -> List[Tuple[int, DocumentNode, Set[str]]]:
+        queries: List[Tuple[int, DocumentNode, Set[str]]] = []
 
         for schema_id in range(len(self.schemas)):
-            schema_query = self.get_schema_query(schema_id, document)
+            schema_query, used_variables = self.get_schema_query_with_used_variables(
+                schema_id, document
+            )
             if schema_query:
-                queries.append((schema_id, schema_query))
+                queries.append((schema_id, schema_query, used_variables))
 
         return queries
 
-    def get_schema_query(
+    def get_schema_query_with_used_variables(
         self,
         schema_id: int,
         document: DocumentNode,
-    ) -> Optional[DocumentNode]:
+    ) -> Tuple[Optional[DocumentNode], Set[str]]:
         context = QueryFilterContext(schema_id)
         definitions = []
 
@@ -72,9 +79,9 @@ class QueryFilter:
                     definitions.append(new_operation)
 
         if not definitions:
-            return None
+            return None, context.variables
 
-        return DocumentNode(definitions=tuple(definitions))
+        return DocumentNode(definitions=tuple(definitions)), context.variables
 
     def filter_operation_node(
         self,
@@ -117,12 +124,18 @@ class QueryFilter:
         if not new_selections:
             return None
 
+        used_variable_definitions = [
+            variable_definition
+            for variable_definition in operation_node.variable_definitions
+            if variable_definition.variable.name.value in context.variables
+        ]
+
         return OperationDefinitionNode(
             loc=operation_node.loc,
             operation=operation_node.operation,
             name=operation_node.name,
             directives=operation_node.directives,
-            variable_definitions=operation_node.variable_definitions,
+            variable_definitions=tuple(used_variable_definitions),
             selection_set=SelectionSetNode(
                 selections=tuple(new_selections),
             ),
@@ -134,6 +147,12 @@ class QueryFilter:
         schema_obj: str,
         context: QueryFilterContext,
     ) -> Optional[FieldNode]:
+        context.variables.update(
+            argument.value.name.value
+            for argument in field_node.arguments
+            if isinstance(argument.value, VariableNode)
+        )
+
         if not field_node.selection_set:
             return field_node
 

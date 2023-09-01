@@ -258,7 +258,7 @@ class QueryFilter:
         if not fragment:
             return []
 
-        type_name = fragment.name.value
+        type_name = fragment.type_condition.name.value
         type_fields = self.fields_map[type_name]
 
         new_selections: List[SelectionNode] = []

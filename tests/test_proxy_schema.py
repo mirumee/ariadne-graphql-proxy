@@ -603,3 +603,82 @@ async def test_proxy_schema_unpacks_fragment_in_query(
             """
         ).strip(),
     }
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_splits_variables_between_schemas(
+    httpx_mock,
+    search_schema_json,
+    store_schema_json,
+    search_root_value,
+    store_root_value,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/search/", json=search_schema_json
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/store/", json=store_schema_json
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/search/",
+        json={"data": search_root_value},
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/store/",
+        json={"data": store_root_value},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/search/")
+    proxy_schema.add_remote_schema("http://graphql.example.com/store/")
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "TestQuery",
+        {"searchQuery": "test", "orderId": "testId"},
+        parse(
+            """
+            query TestQuery($searchQuery: String!, $orderId: ID!) {
+              search(query: $searchQuery) {
+                id
+              }
+              order(id: $orderId) {
+                id
+              }
+            }
+            """
+        ),
+    )
+
+    search_request = httpx_mock.get_requests(url="http://graphql.example.com/search/")[
+        -1
+    ]
+    store_request = httpx_mock.get_requests(url="http://graphql.example.com/store/")[-1]
+
+    assert json.loads(search_request.content) == {
+        "operationName": "TestQuery",
+        "variables": {"searchQuery": "test"},
+        "query": dedent(
+            """
+            query TestQuery($searchQuery: String!) {
+              search(query: $searchQuery) {
+                id
+              }
+            }
+            """
+        ).strip(),
+    }
+    assert json.loads(store_request.content) == {
+        "operationName": "TestQuery",
+        "variables": {"orderId": "testId"},
+        "query": dedent(
+            """
+            query TestQuery($orderId: ID!) {
+              order(id: $orderId) {
+                id
+              }
+            }
+            """
+        ).strip(),
+    }

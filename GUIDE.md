@@ -446,6 +446,83 @@ app = GraphQL(
 ```
 
 
+## imgix query params resolver
+
+`get_query_params_resolver` returns a preconfigured resolver that takes URL string and passed arguments to generate a URL with arguments as query params. It can be used to add [rendering options](https://docs.imgix.com/apis/rendering) to [imgix.com](https://imgix.com) image URL.
+
+### Function arguments:
+
+- `get_url`: a `str` or `Callable` which returns `str`. If `get_url` is a `str` then the resolver will split it by `.` and use substrings as keys to get value from `obj` dict, e.g. with `get_url` set to `"imageData.url"` the resolver will use `obj["imageData"]["url"]` as URL string. If `get_url` is a callable, then resolver will call it with `obj`, `info` and `**kwargs` and use result as URL string.
+- `extra_params`: an optional `dict` of query params to be added to the URL string. These can be overridden by kwargs passed to the resolver.
+- `get_params`: an optional `Callable` to be called on passed `**kwargs` before they are added to the URL string.
+- `serialize_url`: an optional `Callable` to be called on URL string with query params already added. Result is returned directly by the resolver.
+
+### Example with `insert_field`
+
+In this example we assume there is a graphql server which provides following schema:
+
+```gql
+type Query {
+  product: Product!
+}
+
+type Product {
+  imageUrl: String!
+}
+```
+
+`imageUrl` returns URL string served by [imgix.com](https://imgix.com) and we want to add another field with thumbnail URL.
+
+```python
+from ariadne_graphql_proxy import ProxySchema, get_context_value, set_resolver
+from ariadne_graphql_proxy.contrib.imgix import get_query_params_resolver
+
+
+proxy_schema = ProxySchema()
+proxy_schema.add_remote_schema("https://remote-schema.local")
+proxy_schema.insert_field(
+    type_name="Product",
+    field_str="thumbnailUrl(w: Int, h: Int): String!",
+)
+
+final_schema = proxy_schema.get_final_schema()
+
+set_resolver(
+    final_schema,
+    "Product",
+    "thumbnailUrl",
+    get_query_params_resolver(
+        "imageUrl",
+        extra_params={"h": 128, "w": 128, "fit": "min"},
+    ),
+)
+```
+
+With an added resolver, `thumbnailUrl` will return `imageUrl` with additional query parameters. `fit` is always set to `min`. `w` and `h` are set to `128` by default, but can be changed by query argument, e.g.
+
+```gql
+query getProduct {
+    product {
+        imageUrl
+        thumbnailUrl
+        smallThumbnailUrl: thumbnailUrl(w: 32, h: 32)
+    }
+}
+```
+
+```json
+{
+  "data": {
+    "product": {
+      "imageUrl": "https://test-imageix.com/product-image.jpg",
+      "thumbnailUrl": "https://test-imageix.com/product-image.jpg?h=128&w=128&fit=min",
+      "smallThumbnailUrl": "https://test-imageix.com/product-image.jpg?h=32&w=32&fit=min"
+    }
+  }
+}
+```
+
+
 ## Proxying headers
 
 Ariadne GraphQL Proxy requires that `GraphQLResolveInfo.context` attribute is a dictionary containing `headers` key, which in itself is a `Dict[str, str]` dictionary.

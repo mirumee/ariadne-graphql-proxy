@@ -762,6 +762,20 @@ def get_sub_schema(self, schema_id: int) -> GraphQLSchema:
 Returns sub schema with given id. If schema doesn't exist, raises `IndexError`.
 
 
+### `insert_field`
+
+```python
+def insert_field(self, type_name: str, field_str: str):
+```
+
+Inserts field into all schemas with given `type_name`. The field is automatically delayed - excluded from queries run by `root_resolver` against the remote GraphQL APIs.
+
+#### Required arguments
+
+- `type_name`: a `str` with the name of the type into which the field will be inserted.
+- `field_str`: a `str` with SDL field representation, e.g. `"fieldA(argA: String!) Int"`.
+
+
 ### `get_final_schema`
 
 ```python

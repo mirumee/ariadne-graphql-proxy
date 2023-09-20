@@ -769,3 +769,49 @@ async def test_proxy_schema_splits_variables_from_fragments_between_schemas(
             """
         ).strip(),
     }
+
+
+def test_insert_field_adds_field_into_local_schemas_with_given_type(
+    schema, complex_schema
+):
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    proxy_schema.add_schema(complex_schema)
+
+    proxy_schema.insert_field("Complex", "newField: String!")
+
+    assert proxy_schema.get_sub_schema(0).type_map["Complex"].fields["newField"]
+    assert proxy_schema.get_sub_schema(1).type_map["Complex"].fields["newField"]
+
+
+def test_insert_field_adds_field_into_remote_schemas_with_given_type(
+    httpx_mock, schema_json, complex_schema_json
+):
+    httpx_mock.add_response(url="http://graphql.example.com/schema/", json=schema_json)
+    httpx_mock.add_response(
+        url="http://graphql.example.com/complex_schema/", json=complex_schema_json
+    )
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/schema/")
+    proxy_schema.add_remote_schema("http://graphql.example.com/complex_schema/")
+
+    proxy_schema.insert_field("Complex", "newField: String!")
+
+    assert proxy_schema.get_sub_schema(0).type_map["Complex"].fields["newField"]
+    assert proxy_schema.get_sub_schema(1).type_map["Complex"].fields["newField"]
+
+
+def test_insert_field_adds_field_into_both_local_and_remote_schema(
+    httpx_mock, schema, complex_schema_json
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/complex_schema/", json=complex_schema_json
+    )
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    proxy_schema.add_remote_schema("http://graphql.example.com/complex_schema/")
+
+    proxy_schema.insert_field("Complex", "newField: String!")
+
+    assert proxy_schema.get_sub_schema(0).type_map["Complex"].fields["newField"]
+    assert proxy_schema.get_sub_schema(1).type_map["Complex"].fields["newField"]

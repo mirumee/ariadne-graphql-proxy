@@ -1,3 +1,5 @@
+from graphql import GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLString
+
 STANDARD_TYPES = (
     "ID",
     "Boolean",
@@ -13,3 +15,15 @@ STANDARD_TYPES = (
     "__Directive",
     "__DirectiveLocation",
 )
+
+
+def add_missing_scalar_types(schema_types: dict) -> dict:
+    scalar_types = {
+        "ID": GraphQLID,
+        "Boolean": GraphQLBoolean,
+        "Float": GraphQLFloat,
+        "Int": GraphQLInt,
+        "String": GraphQLString,
+    }
+    scalar_types.update(schema_types)
+    return scalar_types

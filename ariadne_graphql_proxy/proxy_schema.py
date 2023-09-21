@@ -18,7 +18,11 @@ from .copy import copy_schema
 from .merge import merge_schemas
 from .query_filter import QueryFilter
 from .remote_schema import get_remote_schema
-from .standard_types import STANDARD_TYPES
+from .standard_types import STANDARD_TYPES, add_missing_scalar_types
+from .str_to_field import (
+    get_field_definition_from_str,
+    get_graphql_field_from_field_definition,
+)
 
 
 class ProxySchema:
@@ -83,6 +87,8 @@ class ProxySchema:
                 exclude_directives_args=exclude_directives_args,
             )
 
+        schema.type_map = add_missing_scalar_types(schema.type_map)
+
         self.schemas.append(schema)
         self.urls.append(url)
 
@@ -134,6 +140,18 @@ class ProxySchema:
 
             for field_name in type_fields:
                 self.fields_map[type_name].pop(field_name, None)
+
+    def insert_field(self, type_name: str, field_str: str):
+        field_definition = get_field_definition_from_str(field_str=field_str)
+        field_name = field_definition.name.value
+        for schema in self.schemas:
+            type_ = schema.type_map.get(type_name)
+            if not type_ or not hasattr(type_, "fields"):
+                continue
+
+            type_.fields[field_name] = get_graphql_field_from_field_definition(
+                schema=schema, field_definition=field_definition
+            )
 
     def get_sub_schema(self, schema_id: int) -> GraphQLSchema:
         try:

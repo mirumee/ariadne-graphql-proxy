@@ -26,6 +26,14 @@ def schema():
             name(arg: Generic, other: Generic): String!
             rank(arg: Generic, other: Generic): Int!
         }
+
+        input InputType {
+            arg1: Float!
+            arg2: Boolean!
+            arg3: String!
+            arg4: ID!
+            arg5: Int!
+        }
         """
     )
 

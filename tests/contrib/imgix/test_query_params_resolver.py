@@ -1,6 +1,77 @@
+from dataclasses import dataclass
+
 import pytest
 
-from ariadne_graphql_proxy.contrib.imgix import get_query_params_resolver
+from ariadne_graphql_proxy.contrib.imgix.query_params_resolver import (
+    get_attribute_value,
+    get_query_params_resolver,
+)
+
+
+def test_get_attribute_value_returns_value_from_dict():
+    assert get_attribute_value({"key": "value"}, None, attribute_str="key") == "value"
+
+
+def test_get_attribute_value_returns_nested_value_from_dict():
+    assert (
+        get_attribute_value(
+            {"keyA": {"keyB": {"keyC": "valueC"}}}, None, attribute_str="keyA.keyB.keyC"
+        )
+        == "valueC"
+    )
+
+
+def test_get_attribute_value_returns_attribute_of_not_dict_object():
+    @dataclass
+    class TypeA:
+        value_a: str
+
+    assert (
+        get_attribute_value(TypeA(value_a="valueA"), None, attribute_str="value_a")
+        == "valueA"
+    )
+
+
+def test_get_attribute_value_returns_nested_attribute_of_not_dict_object():
+    @dataclass
+    class TypeC:
+        value_c: str
+
+    @dataclass
+    class TypeB:
+        key_c: TypeC
+
+    @dataclass
+    class TypeA:
+        key_b: TypeB
+
+    assert (
+        get_attribute_value(
+            TypeA(key_b=TypeB(key_c=TypeC(value_c="value_c"))),
+            None,
+            attribute_str="key_b.key_c.value_c",
+        )
+        == "value_c"
+    )
+
+
+def test_get_attribute_value_returns_value_from_both_dict_and_non_dict_objects():
+    @dataclass
+    class TypeB:
+        value_b: dict
+
+    @dataclass
+    class TypeA:
+        key_a: TypeB
+
+    assert (
+        get_attribute_value(
+            {"xyz": {"a": TypeA(key_a=TypeB(value_b={"c": "value_c"}))}},
+            None,
+            attribute_str="xyz.a.key_a.value_b.c",
+        )
+        == "value_c"
+    )
 
 
 def test_resolver_returns_url_from_given_attribute():

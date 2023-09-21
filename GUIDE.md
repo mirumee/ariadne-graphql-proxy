@@ -453,7 +453,7 @@ app = GraphQL(
 
 ### Function arguments:
 
-- `get_url`: a `str` or `Callable` which returns `str`. If `get_url` is a `str` then the resolver will split it by `.` and use substrings as keys to get value from `obj` dict, e.g. with `get_url` set to `"imageData.url"` the resolver will use `obj["imageData"]["url"]` as URL string. If `get_url` is a callable, then resolver will call it with `obj`, `info` and `**kwargs` and use result as URL string.
+- `get_url`: a `str` or `Callable` which returns `str`. If `get_url` is a `str` then the resolver will split it by `.` and use substrings as keys to get value from `obj` dict or as attribute names for non dict objects, e.g. with `get_url` set to `"imageData.url"` the resolver will use one of: `obj["imageData"]["url"]`, `obj["imageData"].url`, `obj.imageData["url"]`, `obj.imageData.url` as URL string. If `get_url` is a callable, then resolver will call it with `obj`, `info` and `**kwargs` and use result as URL string.
 - `extra_params`: an optional `dict` of query params to be added to the URL string. These can be overridden by kwargs passed to the resolver.
 - `get_params`: an optional `Callable` to be called on passed `**kwargs` before they are added to the URL string.
 - `serialize_url`: an optional `Callable` to be called on URL string with query params already added. Result is returned directly by the resolver.

@@ -10,7 +10,10 @@ def get_attribute_value(
 ) -> Any:
     value = obj
     for attr in attribute_str.split("."):
-        value = value.get(attr)
+        try:
+            value = value.get(attr)
+        except AttributeError:
+            value = getattr(value, attr, None)
     return value
 
 

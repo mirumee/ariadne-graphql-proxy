@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## UNRELEASED
+## 0.2.0 (2023-09-25)
 
 - Added `CloudflareCacheBackend`.
 - Added `DynamoDBCacheBackend`.

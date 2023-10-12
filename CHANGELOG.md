@@ -2,7 +2,7 @@
 
 ## UNRELEASED
 
-- Changed `DynamoDBCacheBackend` to serialize cached value as json string.
+- Added `CacheSerializer`, `NoopCacheSerializer` and `JSONCacheSerializer`. Changed `CacheBackend`, `InMemoryCache`, `CloudflareCacheBackend` and `DynamoDBCacheBackend` to handle `serializer` argument.
 
 
 ## 0.2.0 (2023-09-25)

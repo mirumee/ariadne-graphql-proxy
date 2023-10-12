@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -43,13 +44,30 @@ def test_init_raises_dynamodb_cache_error_for_unavailable_table(aws_credentials)
 
 
 @pytest.mark.asyncio
-async def test_set_creates_correct_item_in_table(test_table):
+@pytest.mark.parametrize(
+    "test_value",
+    [
+        "test",
+        14,
+        10.11,
+        True,
+        {"val": 5.5},
+        {"val": "test"},
+        {"val": 22},
+        {"val": False},
+        ["x", "y", "z"],
+        [1, 2, 3],
+        [1.1, 2.2, 3.3],
+        [True, False, True],
+    ],
+)
+async def test_set_creates_correct_item_in_table(test_table, test_value):
     cache = DynamoDBCacheBackend(table_name="test_table")
 
-    await cache.set(key="test_key", value="test_value")
+    await cache.set(key="test_key", value=test_value)
 
     response = test_table.get_item(Key={"key": "test_key"})
-    assert response["Item"] == {"key": "test_key", "value": "test_value"}
+    assert response["Item"] == {"key": "test_key", "value": json.dumps(test_value)}
 
 
 @pytest.mark.asyncio
@@ -62,14 +80,14 @@ async def test_set_creates_item_with_ttl(test_table):
     response = test_table.get_item(Key={"key": "test_key"})
     assert response["Item"] == {
         "key": "test_key",
-        "value": "test_value",
+        "value": json.dumps("test_value"),
         "ttl": int(time.time()) + 300,
     }
 
 
 @pytest.mark.asyncio
 async def test_get_returns_value_from_table(test_table):
-    test_table.put_item(Item={"key": "test_key", "value": "test_value"})
+    test_table.put_item(Item={"key": "test_key", "value": json.dumps("test_value")})
     cache = DynamoDBCacheBackend(table_name="test_table")
 
     assert await cache.get(key="test_key") == "test_value"
@@ -86,7 +104,11 @@ async def test_get_returns_default_for_not_exisitng_key(test_table):
 @freeze_time("2023-01-01 12:00:00")
 async def test_get_returns_not_expired_item(test_table):
     test_table.put_item(
-        Item={"key": "test_key", "value": "test_value", "ttl": int(time.time()) + 900}
+        Item={
+            "key": "test_key",
+            "value": json.dumps("test_value"),
+            "ttl": int(time.time()) + 900,
+        }
     )
     cache = DynamoDBCacheBackend(table_name="test_table")
 

@@ -1,3 +1,4 @@
+import json
 import time
 from typing import Any, Optional
 
@@ -60,7 +61,10 @@ class DynamoDBCacheBackend(CacheBackend):
         )
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
-        item = {self.partition_key: key, self.value_attribute_name: value}
+        item: dict[str, Any] = {
+            self.partition_key: key,
+            self.value_attribute_name: json.dumps(value),
+        }
         if ttl:
             now = int(time.time())
             item[self.ttl_attribute] = now + ttl
@@ -74,7 +78,7 @@ class DynamoDBCacheBackend(CacheBackend):
         if len(items) < 1:
             return default
 
-        return items[0].get(self.value_attribute_name, default)
+        return json.loads(items[0][self.value_attribute_name])
 
     async def clear_all(self):
         pass

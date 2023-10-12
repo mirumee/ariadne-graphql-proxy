@@ -1,12 +1,13 @@
-import json
 import os
 import time
+from typing import Any
 
 import boto3
 import pytest
 from freezegun import freeze_time
 from moto import mock_dynamodb
 
+from ariadne_graphql_proxy.cache import CacheSerializer
 from ariadne_graphql_proxy.contrib.aws import DynamoDBCacheBackend, DynamoDBCacheError
 
 
@@ -67,7 +68,27 @@ async def test_set_creates_correct_item_in_table(test_table, test_value):
     await cache.set(key="test_key", value=test_value)
 
     response = test_table.get_item(Key={"key": "test_key"})
-    assert response["Item"] == {"key": "test_key", "value": json.dumps(test_value)}
+    assert response["Item"] == {
+        "key": "test_key",
+        "value": cache.serializer.serialize(test_value),
+    }
+
+
+@pytest.mark.asyncio
+async def test_set_uses_custom_serializer(test_table):
+    class CustomSerializer(CacheSerializer):
+        def serialize(self, value: Any) -> str:
+            return str(value) + "-serialized"
+
+    cache = DynamoDBCacheBackend(table_name="test_table", serializer=CustomSerializer())
+
+    await cache.set(key="test_key", value="abcd")
+
+    response = test_table.get_item(Key={"key": "test_key"})
+    assert response["Item"] == {
+        "key": "test_key",
+        "value": "abcd-serialized",
+    }
 
 
 @pytest.mark.asyncio
@@ -80,17 +101,32 @@ async def test_set_creates_item_with_ttl(test_table):
     response = test_table.get_item(Key={"key": "test_key"})
     assert response["Item"] == {
         "key": "test_key",
-        "value": json.dumps("test_value"),
+        "value": cache.serializer.serialize("test_value"),
         "ttl": int(time.time()) + 300,
     }
 
 
 @pytest.mark.asyncio
 async def test_get_returns_value_from_table(test_table):
-    test_table.put_item(Item={"key": "test_key", "value": json.dumps("test_value")})
     cache = DynamoDBCacheBackend(table_name="test_table")
+    test_table.put_item(
+        Item={"key": "test_key", "value": cache.serializer.serialize("test_value")}
+    )
 
     assert await cache.get(key="test_key") == "test_value"
+
+
+@pytest.mark.asyncio
+async def test_get_uses_custom_serializer(test_table):
+    class CustomSerializer(CacheSerializer):
+        def deserialize(self, value: str) -> Any:
+            return value + "-deserialized"
+
+    test_table.put_item(Item={"key": "test_key", "value": "test_value"})
+
+    cache = DynamoDBCacheBackend(table_name="test_table", serializer=CustomSerializer())
+
+    assert await cache.get(key="test_key") == "test_value-deserialized"
 
 
 @pytest.mark.asyncio
@@ -103,14 +139,14 @@ async def test_get_returns_default_for_not_exisitng_key(test_table):
 @pytest.mark.asyncio
 @freeze_time("2023-01-01 12:00:00")
 async def test_get_returns_not_expired_item(test_table):
+    cache = DynamoDBCacheBackend(table_name="test_table")
     test_table.put_item(
         Item={
             "key": "test_key",
-            "value": json.dumps("test_value"),
+            "value": cache.serializer.serialize("test_value"),
             "ttl": int(time.time()) + 900,
         }
     )
-    cache = DynamoDBCacheBackend(table_name="test_table")
 
     assert await cache.get(key="test_key") == "test_value"
 

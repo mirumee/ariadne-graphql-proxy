@@ -1,8 +1,11 @@
-import json
 import time
 from typing import Any, Optional
 
-from ariadne_graphql_proxy.cache import CacheBackend
+from ariadne_graphql_proxy.cache import (
+    CacheBackend,
+    CacheSerializer,
+    JSONCacheSerializer,
+)
 
 try:
     from asgiref.sync import sync_to_async
@@ -25,7 +28,10 @@ class DynamoDBCacheBackend(CacheBackend):
         partition_key: str = "key",
         ttl_attribute: str = "ttl",
         session: Optional[Session] = None,
+        serializer: Optional[CacheSerializer] = None,
     ) -> None:
+        super().__init__(serializer or JSONCacheSerializer())
+
         self.table_name = table_name
         self.partition_key = partition_key
         self.ttl_attribute = ttl_attribute
@@ -63,7 +69,7 @@ class DynamoDBCacheBackend(CacheBackend):
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         item: dict[str, Any] = {
             self.partition_key: key,
-            self.value_attribute_name: json.dumps(value),
+            self.value_attribute_name: self.serializer.serialize(value),
         }
         if ttl:
             now = int(time.time())
@@ -78,7 +84,7 @@ class DynamoDBCacheBackend(CacheBackend):
         if len(items) < 1:
             return default
 
-        return json.loads(items[0][self.value_attribute_name])
+        return self.serializer.deserialize(items[0][self.value_attribute_name])
 
     async def clear_all(self):
         pass

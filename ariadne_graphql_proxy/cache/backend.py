@@ -1,8 +1,13 @@
 from time import time
 from typing import Any, Dict, Optional, Tuple
 
+from .serializer import CacheSerializer, NoopCacheSerializer
+
 
 class CacheBackend:
+    def __init__(self, serializer: Optional[CacheSerializer] = None) -> None:
+        self.serializer: CacheSerializer = serializer or NoopCacheSerializer()
+
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         raise NotImplementedError("Cache backends need to define custom 'set' method.")
 
@@ -18,7 +23,9 @@ class CacheBackend:
 class InMemoryCache(CacheBackend):
     _cache: Dict[str, Tuple[Any, Optional[int]]]
 
-    def __init__(self):
+    def __init__(self, serializer: Optional[CacheSerializer] = None):
+        super().__init__(serializer)
+
         self._cache = {}
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):

@@ -1,7 +1,9 @@
 import json
+from typing import Any
 
 import pytest
 
+from ariadne_graphql_proxy.cache import CacheSerializer
 from ariadne_graphql_proxy.contrib.cloudflare import (
     CloudflareCacheBackend,
     CloudflareCacheError,
@@ -123,7 +125,29 @@ async def test_set_sends_correct_payload_to_cache_value(httpx_mock, list_keys_js
 
     request = httpx_mock.get_request(method="PUT")
     assert {f.name: f.file for f in request.stream.fields} == {
-        "value": json.dumps({"value": "test_value"}),
+        "value": cache.serializer.serialize("test_value"),
+        "metadata": "{}",
+    }
+
+
+@pytest.mark.asyncio
+async def test_set_uses_custom_serializer(httpx_mock, list_keys_json):
+    httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
+    httpx_mock.add_response(method="PUT", status_code=200)
+
+    class CustomSerializer(CacheSerializer):
+        def serialize(self, value: Any) -> str:
+            return str(value) + "-serialized"
+
+    cache = CloudflareCacheBackend(
+        account_id="acc_id", namespace_id="kv_id", serializer=CustomSerializer()
+    )
+
+    await cache.set("key", "test_value")
+
+    request = httpx_mock.get_request(method="PUT")
+    assert {f.name: f.file for f in request.stream.fields} == {
+        "value": "test_value-serialized",
         "metadata": "{}",
     }
 
@@ -143,7 +167,7 @@ async def test_set_sends_request_with_provided_ttl(httpx_mock, list_keys_json):
 @pytest.mark.asyncio
 async def test_get_retrives_value_from_correct_url(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
-    httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
+    httpx_mock.add_response(method="GET", status_code=200, content=b'"test_value"')
     cache = CloudflareCacheBackend(
         account_id="acc_id", namespace_id="kv_id", base_url="https://base.url"
     )
@@ -169,7 +193,7 @@ async def test_get_sends_request_with_correct_headers(
     headers, httpx_mock, list_keys_json
 ):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
-    httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
+    httpx_mock.add_response(method="GET", status_code=200, content=b'"test_value"')
     cache = CloudflareCacheBackend(
         account_id="acc_id", namespace_id="kv_id", headers=headers
     )
@@ -183,12 +207,30 @@ async def test_get_sends_request_with_correct_headers(
 @pytest.mark.asyncio
 async def test_get_returns_retrieved_value(httpx_mock, list_keys_json):
     httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
-    httpx_mock.add_response(method="GET", status_code=200, json={"value": "test_value"})
+    httpx_mock.add_response(method="GET", status_code=200, content=b'"test_value"')
     cache = CloudflareCacheBackend(account_id="acc_id", namespace_id="kv_id")
 
     value = await cache.get("key")
 
     assert value == "test_value"
+
+
+@pytest.mark.asyncio
+async def test_get_uses_custom_serializer(httpx_mock, list_keys_json):
+    httpx_mock.add_response(method="GET", status_code=200, json=list_keys_json)
+    httpx_mock.add_response(method="GET", status_code=200, content=b'"test_value"')
+
+    class CustomSerializer(CacheSerializer):
+        def deserialize(self, value: str) -> Any:
+            return value.strip("'\"") + "-deserialized"
+
+    cache = CloudflareCacheBackend(
+        account_id="acc_id", namespace_id="kv_id", serializer=CustomSerializer()
+    )
+
+    value = await cache.get("key")
+
+    assert value == "test_value-deserialized"
 
 
 @pytest.mark.asyncio

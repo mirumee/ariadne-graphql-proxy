@@ -1,9 +1,12 @@
-import json
 from typing import Any, Dict, Optional
 
 import httpx
 
-from ...cache import CacheBackend
+from ariadne_graphql_proxy.cache import (
+    CacheBackend,
+    CacheSerializer,
+    JSONCacheSerializer,
+)
 
 
 class CloudflareCacheError(Exception):
@@ -25,7 +28,10 @@ class CloudflareCacheBackend(CacheBackend):
         namespace_id: str,
         headers: Optional[Dict[str, str]] = None,
         base_url: str = "https://api.cloudflare.com/client/v4",
+        serializer: Optional[CacheSerializer] = None,
     ) -> None:
+        super().__init__(serializer or JSONCacheSerializer())
+
         self.base_url = base_url
         self.account_id = account_id
         self.namespace_id = namespace_id
@@ -51,7 +57,7 @@ class CloudflareCacheBackend(CacheBackend):
                 f"accounts/{self.account_id}/"
                 f"storage/kv/namespaces/{self.namespace_id}/"
                 f"values/{key}",
-                files={"value": json.dumps({"value": value}), "metadata": "{}"},
+                files={"value": self.serializer.serialize(value), "metadata": "{}"},
                 params={"expiration_ttl": ttl} if ttl is not None else {},
             )
 
@@ -66,7 +72,7 @@ class CloudflareCacheBackend(CacheBackend):
             )
 
         if response.is_success:
-            return response.json()["value"]
+            return self.serializer.deserialize(response.content.decode())
 
         return default
 

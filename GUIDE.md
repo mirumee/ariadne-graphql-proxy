@@ -659,7 +659,7 @@ class CacheBackend:
 ```
 
 
-### Cche serializers
+### Cache serializers
 
 Currently only `NoopCacheSerializer` and `JSONCacheSerializer` are provided, but developers may implement their own serializers.
 

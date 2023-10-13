@@ -630,7 +630,7 @@ To enable cache, `cache` and `cache_key` need to be set.
 
 ### Custom cache backends
 
-Custom cache backends should extend `ariadne_graphql_proxy.cache.CacheBackend` class and  need to implement `set` and `get` methods:
+Custom cache backends should extend `ariadne_graphql_proxy.cache.CacheBackend` class and need to implement `set` and `get` methods:
 
 ```python
 class CacheBackend:
@@ -641,11 +641,36 @@ class CacheBackend:
         ...
 ```
 
+`__init__` methods takes `serializer` argument which defaults to `NoopCacheSerializer()` and can be overriden:
+
+```python
+class CacheBackend:
+    def __init__(self, serializer: Optional[CacheSerializer] = None) -> None:
+        self.serializer: CacheSerializer = serializer or NoopCacheSerializer()
+```
+
+
 They can also optionally implement `clear_all` method, but its not used by Ariadne GraphQL Proxy outside of tests:
 
 ```python
 class CacheBackend:
     async def clear_all(self):
+        ...
+```
+
+
+### Cache serializers
+
+Currently only `NoopCacheSerializer` and `JSONCacheSerializer` are provided, but developers may implement their own serializers.
+
+Custom cache serializers should extend `ariadne_graphql_proxy.cache.CacheSerializer` class and need to implement `serialize` and `deserialize` methods:
+
+```python
+class CacheSerializer:
+    def serialize(self, value: Any) -> str:
+        ...
+
+    def deserialize(self, value: str) -> Any:
         ...
 ```
 
@@ -658,6 +683,7 @@ class CacheBackend:
 - `namespace_id`: `str`: Id of worker's KV Namespace.
 - `headers`: `Optional[Dict[str, str]]`: Headers attached to every api call, defaults to `{}`.
 - `base_url`: `str`: Cloudflare API base url, defaults to `"https://api.cloudflare.com/client/v4"`.
+- `serializer`: `Optional[CacheSerializer]`: serialiser used to process cached and retrieved values, defaults to `ariadne_graphql_proxy.cache.JSONCacheSerializer()`.
 
 ```python
 from ariadne_graphql_proxy.contrib.cloudflare import CloudflareCacheBackend
@@ -687,6 +713,7 @@ It can be imported from `ariadne_graphql_proxy.contrib.aws` and requires followi
 - `partition_key`: `str`: Partition key, defaults to `key`.
 - `ttl_attribute`: `str`: TTL attribute, defaults to `ttl`.
 - `session`: `Optional[Session]`: Instance of `boto3.session.Session`, defaults to `Session()` which reads configuration values according to these [docs](https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html#guide-configuration).
+- `serializer`: `Optional[CacheSerializer]`: serialiser used to process cached and retrieved values, defaults to `ariadne_graphql_proxy.cache.JSONCacheSerializer()`.
 
 ```python
 from ariadne_graphql_proxy.contrib.aws import DynamoDBCacheBackend

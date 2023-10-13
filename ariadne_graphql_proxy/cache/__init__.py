@@ -6,6 +6,7 @@ from .cache_key import (
     get_simple_cache_key,
 )
 from .cached_resolver import cached_resolver
+from .serializer import CacheSerializer, JSONCacheSerializer, NoopCacheSerializer
 from .simple_cached_resolver import simple_cached_resolver
 
 __all__ = [
@@ -17,4 +18,7 @@ __all__ = [
     "get_operation_cache_key",
     "get_simple_cache_key",
     "simple_cached_resolver",
+    "CacheSerializer",
+    "JSONCacheSerializer",
+    "NoopCacheSerializer",
 ]

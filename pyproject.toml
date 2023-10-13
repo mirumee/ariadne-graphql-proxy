@@ -34,6 +34,10 @@ test = [
   "ruff",
 ]
 
+orjson = [
+  "orjson",
+]
+
 aws = [
   "asgiref",
   "boto3",

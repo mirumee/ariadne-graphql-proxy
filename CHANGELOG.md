@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## UNRELEASED
+
+- Added `CacheSerializer`, `NoopCacheSerializer` and `JSONCacheSerializer`. Changed `CacheBackend`, `InMemoryCache`, `CloudflareCacheBackend` and `DynamoDBCacheBackend` to accept `serializer` initialization option.
+
+
 ## 0.2.0 (2023-09-25)
 
 - Added `CloudflareCacheBackend`.

@@ -234,9 +234,11 @@ class ProxySchema:
                     {
                         "operationName": operation_name,
                         "query": print_ast(query_document),
-                        "variables": variables
-                        if not variables
-                        else {key: variables[key] for key in query_variables},
+                        "variables": (
+                            variables
+                            if not variables
+                            else {key: variables[key] for key in query_variables}
+                        ),
                     },
                 )
                 for schema_id, query_document, query_variables in queries

@@ -26,7 +26,7 @@ test = [
   "black",
   "freezegun",
   "moto",
-  "mypy",
+  "mypy<5",
   "pytest",
   "pytest-mock",
   "pytest-httpx",

@@ -25,8 +25,8 @@ dependencies = ["graphql-core>=3.2.0,<3.3", "httpx", "ariadne"]
 test = [
   "black",
   "freezegun",
-  "moto",
-  "mypy[dynamodb]",
+  "moto[dynamodb]",
+  "mypy",
   "pytest",
   "pytest-mock",
   "pytest-httpx",

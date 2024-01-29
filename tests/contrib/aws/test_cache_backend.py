@@ -5,7 +5,7 @@ from typing import Any
 import boto3
 import pytest
 from freezegun import freeze_time
-from moto import mock_dynamodb
+from moto import mock_aws
 
 from ariadne_graphql_proxy.cache import CacheSerializer
 from ariadne_graphql_proxy.contrib.aws import DynamoDBCacheBackend, DynamoDBCacheError
@@ -23,7 +23,7 @@ def aws_credentials():
 
 @pytest.fixture
 def test_table(aws_credentials):
-    with mock_dynamodb():
+    with mock_aws():
         table = boto3.resource("dynamodb").create_table(
             TableName="test_table",
             KeySchema=[{"AttributeName": "key", "KeyType": "HASH"}],
@@ -38,7 +38,7 @@ def test_object_can_be_created_with_existing_table_name(test_table):
     DynamoDBCacheBackend(table_name="test_table")
 
 
-@mock_dynamodb
+@mock_aws
 def test_init_raises_dynamodb_cache_error_for_unavailable_table(aws_credentials):
     with pytest.raises(DynamoDBCacheError):
         DynamoDBCacheBackend(table_name="not_exisitng_table_name")

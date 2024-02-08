@@ -235,9 +235,13 @@ class ProxySchema:
                         "operationName": operation_name,
                         "query": print_ast(query_document),
                         "variables": (
-                            variables
-                            if not variables
-                            else {key: variables[key] for key in query_variables}
+                            {
+                                key: variables[key]
+                                for key in query_variables
+                                if key in variables
+                            }
+                            if variables
+                            else None
                         ),
                     },
                 )

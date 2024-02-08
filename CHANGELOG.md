@@ -3,6 +3,7 @@
 ## UNRELEASED
 
 - Added `CacheSerializer`, `NoopCacheSerializer` and `JSONCacheSerializer`. Changed `CacheBackend`, `InMemoryCache`, `CloudflareCacheBackend` and `DynamoDBCacheBackend` to accept `serializer` initialization option.
+- Fixed schema proxy returning an error when variable defined in an operation is missing from its variables.
 
 
 ## 0.2.0 (2023-09-25)

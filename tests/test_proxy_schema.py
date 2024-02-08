@@ -771,6 +771,44 @@ async def test_proxy_schema_splits_variables_from_fragments_between_schemas(
     }
 
 
+@pytest.mark.asyncio
+async def test_proxy_schema_handles_omitted_optional_variables(
+    httpx_mock,
+    schema_json,
+):
+    httpx_mock.add_response(url="http://graphql.example.com/", json=schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "TestQuery",
+        {"arg": "test"},
+        parse(
+            """
+            query TestQuery($arg: Generic, $other: Generic) {
+              basic(arg: $arg, other: $other)
+            }
+            """
+        ),
+    )
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    assert json.loads(request.content) == {
+        "operationName": "TestQuery",
+        "variables": {"arg": "test"},
+        "query": dedent(
+            """
+            query TestQuery($arg: Generic, $other: Generic) {
+              basic(arg: $arg, other: $other)
+            }
+            """
+        ).strip(),
+    }
+
+
 def test_insert_field_adds_field_into_local_schemas_with_given_type(
     schema, complex_schema
 ):

@@ -33,12 +33,14 @@ class QueryFilter:
         schemas: List[GraphQLSchema],
         fields_map: Dict[str, Dict[str, Set[int]]],
         fields_types: Dict[str, Dict[str, str]],
+        unions: Dict[str, List[str]],
         foreign_keys: Dict[str, Dict[str, List[str]]],
     ):
         self.schema = schema
         self.schemas = schemas
         self.fields_map = fields_map
         self.fields_types = fields_types
+        self.unions = unions
         self.foreign_keys = foreign_keys
 
     def split_query(
@@ -180,7 +182,12 @@ class QueryFilter:
             )
 
         type_name = self.fields_types[schema_obj][field_name]
-        type_fields = self.fields_map[type_name]
+        type_is_union = type_name in self.unions
+
+        if type_is_union:
+            type_fields = {}
+        else:
+            type_fields = self.fields_map[type_name]
 
         new_selections: List[SelectionNode] = []
         for selection in field_node.selection_set.selections:
@@ -205,9 +212,16 @@ class QueryFilter:
                     new_selections.append(inline_fragment_selection)
 
             if isinstance(selection, FragmentSpreadNode):
-                new_selections += self.filter_fragment_spread_node(
-                    selection, schema_obj, context
-                )
+                if type_is_union:
+                    inline_fragment = self.inline_fragment_spread_node(
+                        selection, schema_obj, context
+                    )
+                    if inline_fragment:
+                        new_selections.append(inline_fragment)
+                else:
+                    new_selections += self.filter_fragment_spread_node(
+                        selection, schema_obj, context
+                    )
 
         if not new_selections:
             return None
@@ -308,3 +322,28 @@ class QueryFilter:
                 )
 
         return new_selections
+
+    def inline_fragment_spread_node(
+        self,
+        fragment_node: FragmentSpreadNode,
+        schema_obj: str,
+        context: QueryFilterContext,
+    ) -> Optional[InlineFragmentNode]:
+        fragment_name = fragment_node.name.value
+        fragment = context.fragments.get(fragment_name)
+        if not fragment:
+            return None
+
+        selections = self.filter_fragment_spread_node(
+            fragment_node, schema_obj, context
+        )
+
+        if not selections:
+            return None
+
+        return InlineFragmentNode(
+            type_condition=fragment.type_condition,
+            selection_set=SelectionSetNode(
+                selections=tuple(selections),
+            ),
+        )

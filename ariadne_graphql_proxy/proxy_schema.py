@@ -9,6 +9,7 @@ from graphql import (
     GraphQLInterfaceType,
     GraphQLObjectType,
     GraphQLSchema,
+    GraphQLUnionType,
     GraphQLWrappingType,
     print_ast,
 )
@@ -31,6 +32,7 @@ class ProxySchema:
         self.urls: List[Optional[str]] = []
         self.fields_map: Dict[str, Dict[str, Set[int]]] = {}
         self.fields_types: Dict[str, Dict[str, str]] = {}
+        self.unions: Dict[str, List[str]] = {}
         self.foreign_keys: Dict[str, Dict[str, List[str]]] = {}
 
         self.schema: Optional[GraphQLSchema] = None
@@ -96,6 +98,11 @@ class ProxySchema:
         for type_name, type_def in schema.type_map.items():
             if type_name in STANDARD_TYPES:
                 continue
+
+            if isinstance(type_def, GraphQLUnionType):
+                self.unions[type_name] = [
+                    object_type.name for object_type in type_def._types()
+                ]
 
             if not isinstance(type_def, (GraphQLInterfaceType, GraphQLObjectType)):
                 continue
@@ -180,6 +187,7 @@ class ProxySchema:
             self.schemas,
             self.fields_map,
             self.fields_types,
+            self.unions,
             self.foreign_keys,
         )
 

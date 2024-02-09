@@ -12,6 +12,7 @@ def schema():
         type Query {
             basic(arg: Generic, other: Generic): String
             complex(arg: Generic, other: Generic): Complex
+            unionField: [DeliveryMethod!]!
         }
 
         type Complex {
@@ -33,6 +34,18 @@ def schema():
             arg3: String!
             arg4: ID!
             arg5: Int!
+        }
+
+        union DeliveryMethod = Shipping | Warehouse
+
+        type Shipping {
+            id: ID!
+            name: String!
+        }
+
+        type Warehouse {
+            id: ID!
+            address: String!
         }
         """
     )
@@ -114,6 +127,18 @@ def root_value():
                 "rank": 9001,
             },
         },
+        "deliveryMethod": [
+            {
+                "__typename": "Shipping",
+                "id": "SHIP:1",
+                "name": "Test Shipping",
+            },
+            {
+                "__typename": "Warehouse",
+                "id": "WAREHOUSE:13",
+                "address": "Warehouse #13",
+            },
+        ],
         "other": "Dolor Met",
         "otherComplex": {
             "id": 123,

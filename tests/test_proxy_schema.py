@@ -36,9 +36,10 @@ def test_local_and_proxy_schemas_are_added_to_proxy(
 
     final_schema = proxy_schema.get_final_schema()
     assert print_schema(final_schema)
-    assert len(final_schema.type_map["Query"].fields) == 4
+    assert len(final_schema.type_map["Query"].fields) == 5
     assert "basic" in final_schema.type_map["Query"].fields
     assert "complex" in final_schema.type_map["Query"].fields
+    assert "unionField" in final_schema.type_map["Query"].fields
     assert "other" in final_schema.type_map["Query"].fields
     assert "otherComplex" in final_schema.type_map["Query"].fields
 
@@ -50,9 +51,10 @@ def test_multiple_local_schemas_are_added_to_proxy(schema, complex_schema):
 
     final_schema = proxy_schema.get_final_schema()
     assert print_schema(final_schema)
-    assert len(final_schema.type_map["Query"].fields) == 2
+    assert len(final_schema.type_map["Query"].fields) == 3
     assert "basic" in final_schema.type_map["Query"].fields
     assert "complex" in final_schema.type_map["Query"].fields
+    assert "unionField" in final_schema.type_map["Query"].fields
 
 
 def test_multiple_proxy_schemas_are_added_to_proxy(
@@ -67,9 +69,10 @@ def test_multiple_proxy_schemas_are_added_to_proxy(
 
     final_schema = proxy_schema.get_final_schema()
     assert print_schema(final_schema)
-    assert len(final_schema.type_map["Query"].fields) == 2
+    assert len(final_schema.type_map["Query"].fields) == 3
     assert "basic" in final_schema.type_map["Query"].fields
     assert "complex" in final_schema.type_map["Query"].fields
+    assert "unionField" in final_schema.type_map["Query"].fields
 
 
 def test_local_schema_can_be_retrieved_from_proxy(schema):
@@ -764,6 +767,138 @@ async def test_proxy_schema_splits_variables_from_fragments_between_schemas(
             query TestQuery($orderId: ID!) {
               order(id: $orderId) {
                 id
+              }
+            }
+            """
+        ).strip(),
+    }
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_handles_union_queries(
+    httpx_mock,
+    schema_json,
+    root_value,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json=schema_json,
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json={"data": root_value},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "TestQuery",
+        None,
+        parse(
+            """
+            query TestQuery {
+              unionField {
+                ... on Shipping {
+                  id
+                  name
+                }
+                ... on Warehouse {
+                  id
+                  address
+                }
+              }
+            }
+            """
+        ),
+    )
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    assert json.loads(request.content) == {
+        "operationName": "TestQuery",
+        "variables": None,
+        "query": dedent(
+            """
+            query TestQuery {
+              unionField {
+                ... on Shipping {
+                  id
+                  name
+                }
+                ... on Warehouse {
+                  id
+                  address
+                }
+              }
+            }
+            """
+        ).strip(),
+    }
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_handles_union_queries_with_fragments(
+    httpx_mock,
+    schema_json,
+    root_value,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json=schema_json,
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json={"data": root_value},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "TestQuery",
+        None,
+        parse(
+            """
+            fragment ShippingFields on Shipping {
+              id
+              name
+            }
+
+            fragment WarehouseFields on Warehouse {
+              id
+              address
+            }
+
+            query TestQuery {
+              unionField {
+                ... ShippingFields
+                ... WarehouseFields
+              }
+            }
+            """
+        ),
+    )
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    assert json.loads(request.content) == {
+        "operationName": "TestQuery",
+        "variables": None,
+        "query": dedent(
+            """
+            query TestQuery {
+              unionField {
+                ... on Shipping {
+                  id
+                  name
+                }
+                ... on Warehouse {
+                  id
+                  address
+                }
               }
             }
             """

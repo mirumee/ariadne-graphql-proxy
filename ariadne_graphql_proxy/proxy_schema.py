@@ -101,7 +101,7 @@ class ProxySchema:
 
             if isinstance(type_def, GraphQLUnionType):
                 self.unions[type_name] = [
-                    object_type.name for object_type in type_def._types()
+                    object_type.name for object_type in type_def.types
                 ]
 
             if not isinstance(type_def, (GraphQLInterfaceType, GraphQLObjectType)):

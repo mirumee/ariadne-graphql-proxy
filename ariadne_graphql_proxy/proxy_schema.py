@@ -1,7 +1,7 @@
 from asyncio import gather
 from functools import reduce
 from inspect import isawaitable
-from typing import Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 from ariadne.types import RootValue
 from graphql import (
@@ -26,10 +26,14 @@ from .str_to_field import (
 )
 
 
+ProxyHeaders = Union[dict, Callable[[Any], dict]]
+
+
 class ProxySchema:
     def __init__(self, root_value: Optional[RootValue] = None):
         self.schemas: List[GraphQLSchema] = []
         self.urls: List[Optional[str]] = []
+        self.headers: List[Optional[ProxyHeaders]] = []
         self.fields_map: Dict[str, Dict[str, Set[int]]] = {}
         self.fields_types: Dict[str, Dict[str, str]] = {}
         self.unions: Dict[str, List[str]] = {}
@@ -42,6 +46,7 @@ class ProxySchema:
     def add_remote_schema(
         self,
         url: str,
+        headers: Optional[ProxyHeaders] = None,
         *,
         exclude_types: Optional[List[str]] = None,
         exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
@@ -50,9 +55,15 @@ class ProxySchema:
         exclude_directives_args: Optional[Dict[str, List[str]]] = None,
         extra_fields: Optional[Dict[str, List[str]]] = None,
     ) -> int:
+        if callable(headers):
+            remote_schema = get_remote_schema(url, headers(None))
+        else:
+            remote_schema = get_remote_schema(url, headers)
+
         return self.add_schema(
-            get_remote_schema(url),
+            remote_schema,
             url,
+            headers,
             exclude_types=exclude_types,
             exclude_args=exclude_args,
             exclude_fields=exclude_fields,
@@ -65,6 +76,7 @@ class ProxySchema:
         self,
         schema: GraphQLSchema,
         url: Optional[str] = None,
+        headers: Optional[ProxyHeaders] = None,
         *,
         exclude_types: Optional[List[str]] = None,
         exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
@@ -93,6 +105,7 @@ class ProxySchema:
 
         self.schemas.append(schema)
         self.urls.append(url)
+        self.headers.append(headers)
 
         schema_id = len(self.schemas) - 1
         for type_name, type_def in schema.type_map.items():
@@ -228,17 +241,12 @@ class ProxySchema:
         if not queries:
             return root_value
 
-        headers = {}
-        if context_value.get("request"):
-            authorization = context_value["request"].headers.get("authorization")
-            if authorization:
-                headers["Authorization"] = authorization
-
         subqueries_data = await gather(
             *[
                 self.fetch_data(
+                    context_value,
                     self.urls[schema_id],
-                    headers,
+                    self.headers[schema_id],
                     {
                         "operationName": operation_name,
                         "query": print_ast(query_document),
@@ -264,8 +272,11 @@ class ProxySchema:
 
         return root_value or None
 
-    async def fetch_data(self, url, headers, json):
+    async def fetch_data(self, context, url, headers, json):
         async with AsyncClient() as client:
+            if callable(headers):
+                headers = headers(context)
+
             r = await client.post(
                 url,
                 headers=headers,

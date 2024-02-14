@@ -118,9 +118,9 @@ async def test_proxy_resolver_proxies_headers_via_callable(
     schema,
     root_value,
 ):
-    def proxy_headers(_, info, payload):
+    def proxy_headers(context):
         return {
-            "x-auth": info.context["headers"].get("authorization"),
+            "x-auth": context["headers"].get("authorization"),
         }
 
     resolver = ProxyResolver(

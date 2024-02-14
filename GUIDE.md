@@ -203,7 +203,7 @@ It takes following optional arguments:
 - `cache_key`: `Union[str, Callable[[GraphQLResolveInfo], str]]`
 - `cache_ttl`: `int`
 
-`proxy_headers` option is documented in "Proxying headers" section of this guide.
+`proxy_headers` option is documented in "Configuring headers" section of this guide.
 
 `cache`, `cache_key` and `cache_ttl` arguments are documented in cache section of this guide.
 
@@ -525,7 +525,7 @@ query getProduct {
 ```
 
 
-## Proxying headers
+## Configuring headers
 
 Ariadne GraphQL Proxy requires that `GraphQLResolveInfo.context` attribute is a dictionary containing `headers` key, which in itself is a `Dict[str, str]` dictionary.
 
@@ -534,26 +534,40 @@ Ariadne GraphQL Proxy requires that `GraphQLResolveInfo.context` attribute is a 
 
 ### `ProxySchema`
 
-Proxy schema doesn't include any custom headers in requests used to introspect remote schemas.
+It is possible to configure headers per schema with second positional argument of the `add_remote_schema` method:
 
-`root_resolver` includes `authorization` in header proxied requests if it's present in context's `headers` dictionary.
+```python
+schema.add_remote_schema("https://example.com/graphql", {"Authorization": "Bearer T0K3N"})
+```
+
+Configured headers will be included in all HTTP requests to `https://example.com/graphql` made by the `ProxySchema`. This excludes requests made by `ForeignKeyResolver` and `ProxyResolver` which require headers to be configured on them separately.
+
+If you need to create headers from `context` (eg. to proxy authorization header), you can use a function instead of a `dict`:
+
+```python
+def get_proxy_schema_headers(context):
+    if not context:
+        # Context is not available when `ProxySchema` retrieves remote schema for the first time
+        return {"Authorization": "Bearer T0K3N"}
+    
+    return context.get("headers")
+
+
+schema.add_remote_schema("https://example.com/graphql", get_proxy_schema_headers)
+```
 
 
 ### `ForeignKeyResolver` and `ProxyResolver`
 
-Both foreign key and proxy resolvers constructors take `proxy_headers` as second option. This option controls which headers from `context["headers"]` are proxied to services and which aren't.
+Both foreign key and proxy resolvers constructors take `proxy_headers` as second option. This option controls headers proxying:
 
-If this option is not set, only `authorization` header is proxied, if it was sent to the proxy.
+If this option is not set, no headers are set on proxied queries.
 
-If `proxy_headers` is a `List[str]`, its assumed to be a list of names of headers that should be proxied if sent by client.
+If `proxy_headers` is `True` and `context["headers"]` dictionary exists, its `authorization` value will be proxied.
 
-If `proxy_headers` is a callable, it will be called with three arguments:
+If `proxy_headers` is a `List[str]`, its assumed to be a list of names of headers that should be proxied from `context["headers"]`.
 
-- `obj`: `Any` value that was passed to resolved field's first argument. 
-- `info`: a `GraphQLResolveInfo` object for field with proxy or foreign key resolver.
-- `payload`: a `dict` with GraphQL JSON payload that will be sent to a proxy server (`operationName`, `query`, `variables`).
-
-Callable should return `None` or `Dict[str, str]` with headers to send to other server.
+If `proxy_headers` is a callable, it will be called with single argument (`context`) and should return either `None` or `Dict[str, str]` with headers to send to the other server.
 
 If `proxy_headers` is `None` or `False`, no headers are proxied to the other service.
 

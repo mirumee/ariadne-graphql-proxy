@@ -1,5 +1,6 @@
 import json
 from textwrap import dedent
+from unittest.mock import ANY, Mock, call
 
 import pytest
 from graphql import parse, print_schema
@@ -73,6 +74,61 @@ def test_multiple_proxy_schemas_are_added_to_proxy(
     assert "basic" in final_schema.type_map["Query"].fields
     assert "complex" in final_schema.type_map["Query"].fields
     assert "unionField" in final_schema.type_map["Query"].fields
+
+
+def test_remote_schema_is_requested_by_proxy_using_headers_dict(
+    httpx_mock, schema, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/", {"auth": "ok"})
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[0]
+    assert request.headers["auth"] == "ok"
+
+
+def test_remote_schema_is_requested_by_proxy_using_headers_callable(
+    httpx_mock, schema, schema_json
+):
+    get_headers = Mock(return_value={"auth": "ok"})
+    httpx_mock.add_response(json=schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/", get_headers)
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[0]
+    assert request.headers["auth"] == "ok"
+
+    get_headers.assert_called_once_with(None)
+
+
+def test_multiple_proxy_schemas_use_dedicated_headers_to_retrieve(
+    httpx_mock, schema_json, complex_schema_json
+):
+    get_headers = Mock(return_value={"auth": "ok"})
+
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(json=complex_schema_json)
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/1/", get_headers)
+    proxy_schema.add_remote_schema("http://graphql.example.com/2/", {"auth": "test"})
+
+    final_schema = proxy_schema.get_final_schema()
+    assert print_schema(final_schema)
+    assert len(final_schema.type_map["Query"].fields) == 3
+    assert "basic" in final_schema.type_map["Query"].fields
+    assert "complex" in final_schema.type_map["Query"].fields
+    assert "unionField" in final_schema.type_map["Query"].fields
+
+    get_headers.assert_called_once_with(None)
+
+    request_1 = httpx_mock.get_requests(url="http://graphql.example.com/1/")[0]
+    assert request_1.headers["auth"] == "ok"
+
+    request_2 = httpx_mock.get_requests(url="http://graphql.example.com/2/")[0]
+    assert request_2.headers["auth"] == "test"
 
 
 def test_local_schema_can_be_retrieved_from_proxy(schema):
@@ -988,3 +1044,72 @@ def test_insert_field_adds_field_into_both_local_and_remote_schema(
 
     assert proxy_schema.get_sub_schema(0).type_map["Complex"].fields["newField"]
     assert proxy_schema.get_sub_schema(1).type_map["Complex"].fields["newField"]
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_includes_headers_dict_in_requests(
+    httpx_mock,
+    schema_json,
+    root_value,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json=schema_json,
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json={"data": root_value},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/", {"auth": "ok"})
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "TestQuery",
+        None,
+        parse("query TestQuery { basic }"),
+    )
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    assert request.headers["auth"] == "ok"
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_includes_headers_from_callable_in_requests(
+    httpx_mock,
+    schema_json,
+    root_value,
+):
+    get_headers = Mock(return_value={"auth": "test"})
+
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json=schema_json,
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/",
+        json={"data": root_value},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/", get_headers)
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "TestQuery",
+        None,
+        parse("query TestQuery { basic }"),
+    )
+
+    request = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    assert request.headers["auth"] == "test"
+
+    get_headers.assert_has_calls(
+        [
+            call(None),
+            call(ANY),
+        ]
+    )

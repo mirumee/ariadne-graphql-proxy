@@ -23,7 +23,7 @@ class ProxyResolver:
     def __init__(
         self,
         url: str,
-        proxy_headers: Union[bool, Callable, List[str]] = True,
+        proxy_headers: Union[bool, Callable, List[str]] = False,
         cache: Optional[CacheBackend] = None,
         cache_key: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
         cache_ttl: Optional[int] = None,
@@ -97,12 +97,12 @@ class ProxyResolver:
     async def proxy_query(
         self, obj: Any, info: GraphQLResolveInfo, payload: dict
     ) -> Any:
+        proxy_headers = None
         if self._proxy_headers is True:
-            authorization = info.context["headers"].get("authorization")
-            if authorization:
-                proxy_headers = {"authorization": authorization}
-            else:
-                proxy_headers = None
+            if "headers" in info.context:
+                authorization = info.context["headers"].get("authorization")
+                if authorization:
+                    proxy_headers = {"authorization": authorization}
         elif callable(self._proxy_headers):
             proxy_headers = self._proxy_headers(info.context)
         elif self._proxy_headers:
@@ -111,8 +111,6 @@ class ProxyResolver:
                 for header, value in info.context["headers"].items()
                 if header in self._proxy_headers
             }
-        else:
-            proxy_headers = None
 
         async with AsyncClient() as client:
             r = await client.post(

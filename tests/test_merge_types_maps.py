@@ -17,13 +17,15 @@ def test_merge_type_maps_calls_copy_schema_type_if_object_is_not_present_in_one_
     merge_type_maps(type_map1={"TypeName": type_}, type_map2={})
 
     assert mocked_copy_schema_type.called
-    assert mocked_copy_schema_type.called_with(new_types={}, graphql_type=type_)
+    assert mocked_copy_schema_type(new_types={}, graphql_type=type_)
 
 
 def test_merge_type_maps_calls_merge_types_if_object_is_present_in_both_maps(
     mocker,
 ):
-    mocked_merge_types = mocker.patch("ariadne_graphql_proxy.merge.merge_types")
+    mocked_merge_types = mocker.patch(
+        "ariadne_graphql_proxy.merge.merge_types", return_value=True
+    )
     type1 = GraphQLObjectType(
         name="TypeName",
         fields={"fieldA": GraphQLField(type_=GraphQLString)},
@@ -34,5 +36,8 @@ def test_merge_type_maps_calls_merge_types_if_object_is_present_in_both_maps(
     )
     merge_type_maps(type_map1={"TypeName": type1}, type_map2={"TypeName": type2})
 
-    assert mocked_merge_types.called
-    assert mocked_merge_types.called_with(merge_types={}, type1=type1, type2=type2)
+    mocked_merge_types.assert_called_with(
+        merged_types={"TypeName": True},
+        type1=type1,
+        type2=type2,
+    )

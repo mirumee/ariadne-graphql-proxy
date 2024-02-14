@@ -1,3 +1,5 @@
+from unittest.mock import call
+
 from graphql import (
     DirectiveLocation,
     GraphQLArgument,
@@ -20,8 +22,12 @@ def test_copy_directives_calls_copy_directive_for_each_object(mocker):
     copy_directives({}, (directive1, directive2))
 
     assert mocked_copy_directive.call_count == 2
-    assert mocked_copy_directive.called_with({}, directive1)
-    assert mocked_copy_directive.called_with({}, directive2)
+    mocked_copy_directive.assert_has_calls(
+        [
+            call({}, directive1, directive_exclude_args=None),
+            call({}, directive2, directive_exclude_args=None),
+        ]
+    )
 
 
 def test_copy_directives_returns_tuple_without_excluded_directive():

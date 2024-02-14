@@ -104,7 +104,7 @@ class ProxyResolver:
             else:
                 proxy_headers = None
         elif callable(self._proxy_headers):
-            proxy_headers = self._proxy_headers(obj, info, payload)
+            proxy_headers = self._proxy_headers(info.context)
         elif self._proxy_headers:
             proxy_headers = {
                 header: value

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import httpx
 from graphql import (
     GraphQLSchema,
@@ -6,9 +8,12 @@ from graphql import (
 )
 
 
-def get_remote_schema(graphql_url: str) -> GraphQLSchema:
+def get_remote_schema(
+    graphql_url: str, headers: Optional[dict] = None
+) -> GraphQLSchema:
     response = httpx.post(
         graphql_url,
+        headers=headers,
         json={
             "operationName": "IntrospectionQuery",
             "query": get_introspection_query(),

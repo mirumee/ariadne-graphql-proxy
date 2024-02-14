@@ -33,23 +33,23 @@ def test_json_serialize_calls_json_dumps_with_decode_if_orjson_is_available(
 ):
     JSONCacheSerializer().serialize("test value")
 
-    assert mocked_orjson.dumps.called_with("test value")
+    mocked_orjson.dumps.assert_called_with("test value")
     assert mocked_orjson.dumps().decode.called
 
 
 def test_json_serialize_calls_json_dumps_if_orjson_is_not_available(mocked_json):
     JSONCacheSerializer().serialize("test value")
 
-    assert mocked_json.dumps.called_with("test value")
+    mocked_json.dumps.assert_called_with("test value")
 
 
 def test_json_deserialize_calls_orjson_loads_if_orjson_is_available(mocked_orjson):
     JSONCacheSerializer().deserialize("test value")
 
-    assert mocked_orjson.loads.called_with("test value")
+    mocked_orjson.loads.assert_called_with("test value")
 
 
 def test_json_deserialize_calls_json_loads_if_orjson_is_not_available(mocked_json):
     JSONCacheSerializer().deserialize("test value")
 
-    assert mocked_json.loads.called_with("test value")
+    mocked_json.loads.assert_called_with("test value")

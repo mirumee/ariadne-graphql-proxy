@@ -16,7 +16,7 @@ class ProxyRootValue(BaseProxyRootValue):
         self.errors = errors
         self.extensions = extensions
 
-    def update_result(self, result: Tuple[bool, dict]) -> Tuple[bool, dict]:
+    def update_result(self, result: GraphQLResult) -> GraphQLResult:
         success, data = super().update_result(result)
 
         if self.errors:

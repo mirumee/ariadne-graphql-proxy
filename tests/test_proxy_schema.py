@@ -5,7 +5,7 @@ from unittest.mock import ANY, Mock, call
 import pytest
 from graphql import parse, print_schema
 
-from ariadne_graphql_proxy import ProxySchema
+from ariadne_graphql_proxy import ProxyRootValue, ProxySchema
 
 
 def test_local_schema_is_added_to_proxy(schema):
@@ -1113,3 +1113,153 @@ async def test_proxy_schema_includes_headers_from_callable_in_requests(
             call(ANY),
         ]
     )
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_remote_schema_includes_proxied_errors(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "errors": [
+                {
+                    "message": "Something bad has happened!",
+                    "path": ["complex", "id"],
+                },
+            ],
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { complex { id name } }"),
+    )
+
+    assert isinstance(root_value, ProxyRootValue)
+    assert root_value.errors == [
+        {
+            "message": "Something bad has happened!",
+            "path": ["remote_0", "complex", "id"],
+        },
+    ]
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_remote_schema_excludes_errors(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "errors": [
+                {
+                    "message": "Something bad has happened!",
+                    "path": ["complex", "id"],
+                },
+            ],
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/", proxy_errors=False)
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { complex { id name } }"),
+    )
+
+    assert not isinstance(root_value, ProxyRootValue)
+    assert root_value is None
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_remote_schema_includes_proxied_extensions(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "complex": {
+                    "id": "123",
+                    "name": "Test",
+                },
+            },
+            "extensions": {
+                "score": 100,
+            },
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { complex { id name } }"),
+    )
+
+    assert isinstance(root_value, ProxyRootValue)
+    assert root_value.root_value == {
+        "complex": {
+            "id": "123",
+            "name": "Test",
+        },
+    }
+    assert root_value.extensions == {
+        "remote_0": {
+            "score": 100,
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_root_value_for_remote_schema_excludes_extensions(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "complex": {
+                    "id": "123",
+                    "name": "Test",
+                },
+            },
+            "extensions": {
+                "score": 100,
+            },
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema(
+        "http://graphql.example.com/", proxy_extensions=False
+    )
+
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { complex { id name } }"),
+    )
+
+    assert not isinstance(root_value, ProxyRootValue)
+    assert root_value == {
+        "complex": {
+            "id": "123",
+            "name": "Test",
+        },
+    }

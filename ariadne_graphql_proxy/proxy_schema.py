@@ -237,7 +237,7 @@ class ProxySchema:
         operation_name: Optional[str],
         variables: Optional[dict],
         document: DocumentNode,
-    ) -> Optional[dict]:
+    ) -> Optional[Union[dict, BaseProxyRootValue]]:
         if not self.query_filter:
             raise RuntimeError(
                 "'get_final_schema' needs to be called to build final schema "
@@ -308,6 +308,7 @@ class ProxySchema:
                 isinstance(subquery_data.get("extensions"), dict)
                 and self.proxy_extensions[schema_id]
             ):
+                print("HERE")
                 root_extensions[label] = subquery_data["extensions"]
 
         if root_errors or root_extensions:

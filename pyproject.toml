@@ -19,7 +19,11 @@ classifiers = [
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 version = "0.2.0"
-dependencies = ["graphql-core>=3.2.0,<3.3", "httpx", "ariadne"]
+dependencies = [
+  "graphql-core>=3.2.0,<3.3",
+  "httpx",
+  "ariadne==0.23.0.b1",
+]
 
 [project.optional-dependencies]
 test = [

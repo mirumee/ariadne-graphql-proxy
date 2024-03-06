@@ -39,6 +39,7 @@ from .merge import (
 )
 from .narrow_graphql_query import narrow_graphql_query
 from .proxy_resolver import ProxyResolver
+from .proxy_root_value import ProxyRootValue
 from .proxy_schema import ProxySchema
 from .query_filter import QueryFilter, QueryFilterContext
 from .remote_schema import get_remote_schema
@@ -47,6 +48,7 @@ from .resolvers import set_resolver, unset_resolver
 __all__ = [
     "ForeignKeyResolver",
     "ProxyResolver",
+    "ProxyRootValue",
     "ProxySchema",
     "QueryFilter",
     "QueryFilterContext",

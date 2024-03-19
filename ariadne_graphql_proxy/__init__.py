@@ -44,6 +44,7 @@ from .proxy_schema import ProxySchema
 from .query_filter import QueryFilter, QueryFilterContext
 from .remote_schema import get_remote_schema
 from .resolvers import set_resolver, unset_resolver
+from .selections import merge_selection_sets, merge_selections
 
 __all__ = [
     "ForeignKeyResolver",
@@ -84,6 +85,8 @@ __all__ = [
     "merge_objects",
     "merge_scalars",
     "merge_schemas",
+    "merge_selection_sets",
+    "merge_selections",
     "merge_type_maps",
     "merge_types",
     "merge_unions",

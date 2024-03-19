@@ -11,6 +11,10 @@ from graphql import (
     GraphQLSchema,
     GraphQLUnionType,
     GraphQLWrappingType,
+    OperationDefinitionNode,
+    OperationType,
+    SelectionSetNode,
+    parse,
     print_ast,
 )
 from httpx import AsyncClient
@@ -20,6 +24,7 @@ from .merge import merge_schemas
 from .proxy_root_value import ProxyRootValue
 from .query_filter import QueryFilter
 from .remote_schema import get_remote_schema
+from .selections import merge_selection_sets
 from .standard_types import STANDARD_TYPES, add_missing_scalar_types
 from .str_to_field import (
     get_field_definition_from_str,
@@ -46,6 +51,7 @@ class ProxySchema:
         self.fields_types: Dict[str, Dict[str, str]] = {}
         self.unions: Dict[str, List[str]] = {}
         self.foreign_keys: Dict[str, Dict[str, List[str]]] = {}
+        self.dependencies: Dict[int, Dict[str, Dict[str, SelectionSetNode]]] = {}
 
         self.proxy_root_value = proxy_root_value
 
@@ -176,7 +182,85 @@ class ProxySchema:
         if field_name in self.foreign_keys[type_name]:
             raise ValueError(f"Foreign key already exists on {type_name}.{field_name}")
 
+        if (
+            type_name in self.dependencies
+            and field_name in self.dependencies[type_name]
+        ):
+            raise ValueError(
+                f"Foreign key can't be created for {type_name}.{field_name} because "
+                "field dependencies were previously defined for it."
+            )
+
         self.foreign_keys[type_name][field_name] = [on] if isinstance(on, str) else on
+
+    def add_field_dependencies(
+        self, schema_id: int, type_name: str, field_name: str, query: str
+    ):
+        if type_name in ("Query", "Mutation", "Subscription"):
+            raise ValueError(
+                f"Defining field dependencies for {type_name} fields is not allowed."
+            )
+
+        if (
+            type_name in self.foreign_keys
+            and field_name in self.foreign_keys[type_name]
+        ):
+            raise ValueError(
+                f"Dependencies can't be created for {type_name}.{field_name} because "
+                "foreign key was previously defined for it."
+            )
+
+        if schema_id < 0 or schema_id + 1 > len(self.urls):
+            raise ValueError(f"Schema with ID '{schema_id}' doesn't exist.")
+        if not self.urls[schema_id]:
+            raise ValueError(f"Schema with ID '{schema_id}' is not a remote schema.")
+
+        schema = self.schemas[schema_id]
+        if type_name not in schema.type_map:
+            raise ValueError(
+                f"Type '{type_name}' doesn't exist in schema with ID '{schema_id}'."
+            )
+
+        schema_type = schema.type_map[type_name]
+        if not isinstance(schema_type, GraphQLObjectType):
+            raise ValueError(
+                f"Type '{type_name}' in schema with ID '{schema_id}' is not "
+                "an object type."
+            )
+        if field_name not in schema_type.fields:
+            raise ValueError(
+                f"Type '{type_name}' doesn't define the '{field_name}' field."
+            )
+
+        if schema_id not in self.dependencies:
+            self.dependencies[schema_id] = {}
+        if type_name not in self.dependencies[schema_id]:
+            self.dependencies[schema_id][type_name] = {}
+
+        selection_set = self.parse_field_dependencies(field_name, query)
+
+        type_dependencies = self.dependencies[schema_id][type_name]
+        if not type_dependencies.get(field_name):
+            type_dependencies[field_name] = selection_set
+        else:
+            type_dependencies[field_name] = merge_selection_sets(
+                type_dependencies[field_name], selection_set
+            )
+
+    def parse_field_dependencies(self, field_name: str, query: str) -> SelectionSetNode:
+        ast = parse(query)
+
+        if (
+            not len(ast.definitions) == 1
+            or not isinstance(ast.definitions[0], OperationDefinitionNode)
+            or ast.definitions[0].operation != OperationType.QUERY
+        ):
+            raise ValueError(
+                f"'{field_name}' field dependencies should be defined as a single "
+                "GraphQL operation, e.g.: '{ field other { subfield } }'."
+            )
+
+        return ast.definitions[0].selection_set
 
     def add_delayed_fields(self, delayed_fields: Dict[str, List[str]]):
         for type_name, type_fields in delayed_fields.items():
@@ -227,6 +311,7 @@ class ProxySchema:
             self.fields_types,
             self.unions,
             self.foreign_keys,
+            self.dependencies,
         )
 
         return self.schema

@@ -182,14 +182,15 @@ class ProxySchema:
         if field_name in self.foreign_keys[type_name]:
             raise ValueError(f"Foreign key already exists on {type_name}.{field_name}")
 
-        if (
-            type_name in self.dependencies
-            and field_name in self.dependencies[type_name]
-        ):
-            raise ValueError(
-                f"Foreign key can't be created for {type_name}.{field_name} because "
-                "field dependencies were previously defined for it."
-            )
+        for schema_dependencies in self.dependencies.values():
+            if (
+                type_name in schema_dependencies
+                and field_name in schema_dependencies[type_name]
+            ):
+                raise ValueError(
+                    f"Foreign key can't be created for {type_name}.{field_name} because "
+                    "field dependencies were previously defined for it."
+                )
 
         self.foreign_keys[type_name][field_name] = [on] if isinstance(on, str) else on
 
@@ -272,7 +273,7 @@ class ProxySchema:
             if (
                 type_name in schema.type_map
                 and isinstance(schema.type_map[type_name], GraphQLObjectType)
-                and field_name in schema.type_map[type_name].fields
+                and field_name in schema.type_map[type_name].fields  # pytype: ignore
             ):
                 return
 

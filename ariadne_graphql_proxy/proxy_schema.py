@@ -273,7 +273,7 @@ class ProxySchema:
             if (
                 type_name in schema.type_map
                 and isinstance(schema.type_map[type_name], GraphQLObjectType)
-                and field_name in schema.type_map[type_name].fields  # pytype: ignore
+                and field_name in schema.type_map[type_name].fields  # type: ignore
             ):
                 return
 

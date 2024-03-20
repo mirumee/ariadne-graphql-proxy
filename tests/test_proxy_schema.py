@@ -1266,15 +1266,43 @@ async def test_root_value_for_remote_schema_excludes_extensions(
 
 
 @pytest.mark.asyncio
+async def test_add_field_dependencies_for_nonexisting_schema_raises_error(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+
+    proxy_schema = ProxySchema()
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    with pytest.raises(ValueError) as exc_info:
+        proxy_schema.add_field_dependencies(
+            schema_id + 1, "Complex", "invalid", "{ group { name } }"
+        )
+
+    assert "Schema with ID '1' doesn't exist." == str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_add_field_dependencies_for_local_schema_raises_error(schema):
+    proxy_schema = ProxySchema()
+    schema_id = proxy_schema.add_schema(schema)
+
+    with pytest.raises(ValueError) as exc_info:
+        proxy_schema.add_field_dependencies(
+            schema_id, "Complex", "invalid", "{ group { name } }"
+        )
+
+    assert "Schema with ID '0' is not a remote schema." == str(exc_info.value)
+
+
+@pytest.mark.asyncio
 async def test_add_field_dependencies_for_query_field_raises_error(
     httpx_mock, schema_json
 ):
     httpx_mock.add_response(json=schema_json)
 
     proxy_schema = ProxySchema()
-    schema_id = proxy_schema.add_remote_schema(
-        "http://graphql.example.com/", proxy_extensions=False
-    )
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 
     with pytest.raises(ValueError) as exc_info:
         proxy_schema.add_field_dependencies(schema_id, "Query", "basic", "{ complex }")
@@ -1291,9 +1319,7 @@ async def test_add_field_dependencies_for_mutation_field_raises_error(
     httpx_mock.add_response(json=schema_json)
 
     proxy_schema = ProxySchema()
-    schema_id = proxy_schema.add_remote_schema(
-        "http://graphql.example.com/", proxy_extensions=False
-    )
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 
     with pytest.raises(ValueError) as exc_info:
         proxy_schema.add_field_dependencies(
@@ -1312,9 +1338,7 @@ async def test_add_field_dependencies_for_subscription_field_raises_error(
     httpx_mock.add_response(json=schema_json)
 
     proxy_schema = ProxySchema()
-    schema_id = proxy_schema.add_remote_schema(
-        "http://graphql.example.com/", proxy_extensions=False
-    )
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 
     with pytest.raises(ValueError) as exc_info:
         proxy_schema.add_field_dependencies(
@@ -1333,9 +1357,7 @@ async def test_add_field_dependencies_for_nonexisting_type_raises_error(
     httpx_mock.add_response(json=schema_json)
 
     proxy_schema = ProxySchema()
-    schema_id = proxy_schema.add_remote_schema(
-        "http://graphql.example.com/", proxy_extensions=False
-    )
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 
     with pytest.raises(ValueError) as exc_info:
         proxy_schema.add_field_dependencies(
@@ -1352,9 +1374,7 @@ async def test_add_field_dependencies_for_invalid_type_raises_error(
     httpx_mock.add_response(json=schema_json)
 
     proxy_schema = ProxySchema()
-    schema_id = proxy_schema.add_remote_schema(
-        "http://graphql.example.com/", proxy_extensions=False
-    )
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 
     with pytest.raises(ValueError) as exc_info:
         proxy_schema.add_field_dependencies(
@@ -1373,16 +1393,57 @@ async def test_add_field_dependencies_for_nonexisting_type_field_raises_error(
     httpx_mock.add_response(json=schema_json)
 
     proxy_schema = ProxySchema()
-    schema_id = proxy_schema.add_remote_schema(
-        "http://graphql.example.com/", proxy_extensions=False
-    )
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 
     with pytest.raises(ValueError) as exc_info:
         proxy_schema.add_field_dependencies(
             schema_id, "Complex", "invalid", "{ group { name } }"
         )
 
-    assert "Type 'Complex' doesn't define the 'invalid' field." == str(exc_info.value)
+    assert (
+        "Type 'Complex' doesn't define the 'invalid' field in any of schemas."
+        == str(exc_info.value)
+    )
+
+
+@pytest.mark.asyncio
+async def test_add_field_dependencies_with_invalid_dependencies_arg_raises_error(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(url="http://graphql.example.com/", json=schema_json)
+
+    proxy_schema = ProxySchema()
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    with pytest.raises(ValueError) as exc_info:
+        proxy_schema.add_field_dependencies(
+            schema_id, "Complex", "class", "group { id }"
+        )
+
+    assert (
+        "'class' field dependencies should be defined as a single GraphQL "
+        "operation, e.g.: '{ field other { subfield } }'."
+    ) == str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_add_field_dependencies_with_invalid_dependencies_arg_op_raises_error(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(url="http://graphql.example.com/", json=schema_json)
+
+    proxy_schema = ProxySchema()
+    schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    with pytest.raises(ValueError) as exc_info:
+        proxy_schema.add_field_dependencies(
+            schema_id, "Complex", "class", "mutation { group { id } }"
+        )
+
+    assert (
+        "'class' field dependencies should be defined as a single GraphQL "
+        "operation, e.g.: '{ field other { subfield } }'."
+    ) == str(exc_info.value)
 
 
 @pytest.mark.asyncio

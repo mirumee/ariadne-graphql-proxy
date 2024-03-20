@@ -227,10 +227,8 @@ class ProxySchema:
                 f"Type '{type_name}' in schema with ID '{schema_id}' is not "
                 "an object type."
             )
-        if field_name not in schema_type.fields:
-            raise ValueError(
-                f"Type '{type_name}' doesn't define the '{field_name}' field."
-            )
+
+        self.validate_field_with_dependencies(type_name, field_name)
 
         if schema_id not in self.dependencies:
             self.dependencies[schema_id] = {}
@@ -248,7 +246,14 @@ class ProxySchema:
             )
 
     def parse_field_dependencies(self, field_name: str, query: str) -> SelectionSetNode:
-        ast = parse(query)
+        clean_query = query.strip()
+        if not clean_query.startswith("{") or not clean_query.endswith("}"):
+            raise ValueError(
+                f"'{field_name}' field dependencies should be defined as a single "
+                "GraphQL operation, e.g.: '{ field other { subfield } }'."
+            )
+
+        ast = parse(clean_query)
 
         if (
             not len(ast.definitions) == 1
@@ -261,6 +266,19 @@ class ProxySchema:
             )
 
         return ast.definitions[0].selection_set
+
+    def validate_field_with_dependencies(self, type_name: str, field_name: str) -> None:
+        for schema in self.schemas:
+            if (
+                type_name in schema.type_map
+                and isinstance(schema.type_map[type_name], GraphQLObjectType)
+                and field_name in schema.type_map[type_name].fields
+            ):
+                return
+
+        raise ValueError(
+            f"Type '{type_name}' doesn't define the '{field_name}' field in any of schemas."
+        )
 
     def add_delayed_fields(self, delayed_fields: Dict[str, List[str]]):
         for type_name, type_fields in delayed_fields.items():

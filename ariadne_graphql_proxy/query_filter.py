@@ -14,6 +14,8 @@ from graphql import (
     VariableNode,
 )
 
+from .selections import merge_selections
+
 
 class QueryFilterContext:
     schema_id: int
@@ -35,6 +37,7 @@ class QueryFilter:
         fields_types: Dict[str, Dict[str, str]],
         unions: Dict[str, List[str]],
         foreign_keys: Dict[str, Dict[str, List[str]]],
+        dependencies: Dict[int, Dict[str, Dict[str, SelectionSetNode]]],
     ):
         self.schema = schema
         self.schemas = schemas
@@ -42,6 +45,7 @@ class QueryFilter:
         self.fields_types = fields_types
         self.unions = unions
         self.foreign_keys = foreign_keys
+        self.dependencies = dependencies
 
     def split_query(
         self, document: DocumentNode
@@ -189,12 +193,22 @@ class QueryFilter:
         else:
             type_fields = self.fields_map[type_name]
 
+        fields_dependencies = self.get_type_fields_dependencies(
+            context.schema_id, type_name
+        )
+
         new_selections: List[SelectionNode] = []
         for selection in field_node.selection_set.selections:
             if isinstance(selection, FieldNode):
+                field_name = selection.name.value
+                if fields_dependencies and field_name in fields_dependencies:
+                    new_selections = merge_selections(
+                        new_selections, fields_dependencies[field_name].selections
+                    )
+
                 if (
-                    selection.name.value not in type_fields
-                    or context.schema_id not in type_fields[selection.name.value]
+                    field_name not in type_fields
+                    or context.schema_id not in type_fields[field_name]
                 ):
                     continue
 
@@ -244,12 +258,22 @@ class QueryFilter:
         type_name = fragment_node.type_condition.name.value
         type_fields = self.fields_map[type_name]
 
+        fields_dependencies = self.get_type_fields_dependencies(
+            context.schema_id, type_name
+        )
+
         new_selections: List[SelectionNode] = []
         for selection in fragment_node.selection_set.selections:
             if isinstance(selection, FieldNode):
+                field_name = selection.name.value
+                if fields_dependencies and field_name in fields_dependencies:
+                    new_selections = merge_selections(
+                        new_selections, fields_dependencies[field_name].selections
+                    )
+
                 if (
-                    selection.name.value not in type_fields
-                    or context.schema_id not in type_fields[selection.name.value]
+                    field_name not in type_fields
+                    or context.schema_id not in type_fields[field_name]
                 ):
                     continue
 
@@ -294,12 +318,22 @@ class QueryFilter:
         type_name = fragment.type_condition.name.value
         type_fields = self.fields_map[type_name]
 
+        fields_dependencies = self.get_type_fields_dependencies(
+            context.schema_id, type_name
+        )
+
         new_selections: List[SelectionNode] = []
         for selection in fragment.selection_set.selections:
             if isinstance(selection, FieldNode):
+                field_name = selection.name.value
+                if fields_dependencies and field_name in fields_dependencies:
+                    new_selections = merge_selections(
+                        new_selections, fields_dependencies[field_name].selections
+                    )
+
                 if (
-                    selection.name.value not in type_fields
-                    or context.schema_id not in type_fields[selection.name.value]
+                    field_name not in type_fields
+                    or context.schema_id not in type_fields[field_name]
                 ):
                     continue
 
@@ -347,3 +381,13 @@ class QueryFilter:
                 selections=tuple(selections),
             ),
         )
+
+    def get_type_fields_dependencies(
+        self,
+        schema_id: int,
+        type_name: str,
+    ) -> Optional[Dict[str, SelectionSetNode]]:
+        if schema_id in self.dependencies and type_name in self.dependencies[schema_id]:
+            return self.dependencies[schema_id][type_name]
+
+        return None

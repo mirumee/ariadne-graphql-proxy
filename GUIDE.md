@@ -572,6 +572,71 @@ If `proxy_headers` is a callable, it will be called with single argument (`conte
 If `proxy_headers` is `None` or `False`, no headers are proxied to the other service.
 
 
+## Fields dependencies
+
+In situations where field depends on data from sibling fields in order to be resolved, `ProxySchema` can be configured to include those additional fields in root value query sent to remote schema.
+
+Below example pulls a remote schema that defines `Product` type, extends this type with `image: String` field, and then uses `ProxySchema.add_field_dependencies` to configure `{ metadata { thumb} }` as additional fields to retrieve when `image` field is queried. It also includes custom resolver for `image` field that uses this additional data:
+
+
+```python
+from ariadne.asgi import GraphQL
+from ariadne_graphql_proxy import (
+    ProxySchema,
+    get_context_value,
+    set_resolver,
+)
+from graphql import build_ast_schema, parse
+
+
+proxy_schema = ProxySchema()
+
+# Store schema ID for remote schema
+remote_schema_id = proxy_schema.add_remote_schema(
+    "https://example.com/graphql/",
+)
+
+# Extend Product type with additional image field
+proxy_schema.add_schema(
+    build_ast_schema(
+        parse(
+            """
+            type Product {
+                image: String
+            }
+            """
+        )
+    )
+)
+
+# Configure proxy schema to retrieve thumb from metadata
+# from remote schema when image is queried
+proxy_schema.add_field_dependencies(
+    remote_schema_id, "Product", "image", "{ metadata { thumb } }"
+)
+
+# Create schema instance
+final_schema = proxy_schema.get_final_schema()
+
+
+# Add product image resolver
+def resolve_product_image(obj, info):
+    return obj["metadata"]["thumb"]
+
+
+set_resolver(final_schema, "Product", "image", resolve_product_image)
+
+
+# Setup Ariadne ASGI GraphQL application
+app = GraphQL(
+    final_schema,
+    context_value=get_context_value,
+    root_value=proxy_schema.root_resolver,
+    debug=True,
+)
+```
+
+
 ## Cache framework
 
 Ariadne GraphQL Proxy implements basic cache framework that enables of caching parts of GraphQL queries.
@@ -853,6 +918,34 @@ def add_delayed_fields(self, delayed_fields: Dict[str, List[str]]):
 ```
 
 Sets specific fields in schema as delayed. Delayed fields are excluded from queries ran by `root_resolver` against the remote GraphQL APIs.
+
+
+#### `delayed_fields`
+
+This is a dict of type name and fields names lists:
+
+```python
+{"Type": ["field", "otherField"], "OtherType": ["field"]}
+```
+
+
+### `add_field_dependencies`
+
+```python
+def add_field_dependencies(
+    self, schema_id: int, type_name: str, field_name: str, query: str
+):
+```
+
+Adds fields specified in `query` as dependencies for `field_name` of `type_name` that should be retrieved from schema with `schema_id`.
+
+
+#### Required arguments
+
+- `schema_id`: an `int` with ID of schema returned by `add_remote_schema` or `add_schema`.
+- `type_name`: a `str` with name of type for which dependencies will be set.
+- `field_name`: a `str` with name of field which dependencies will be set.
+- `query`: a `str` with additional fields to fetch when `field_name` is included, eg. `{ metadata { key value} }`.
 
 
 ### `add_foreign_key`

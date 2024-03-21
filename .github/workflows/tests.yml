@@ -29,6 +29,6 @@ jobs:
         pytest
     - name: Linters
       run: |
-        ruff ariadne_graphql_proxy tests
+        ruff check ariadne_graphql_proxy tests
         mypy ariadne_graphql_proxy --ignore-missing-imports --check-untyped-defs
         black --check ariadne_graphql_proxy tests

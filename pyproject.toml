@@ -18,11 +18,11 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
   "graphql-core>=3.2.0,<3.3",
   "httpx",
-  "ariadne==0.23.0.b1",
+  "ariadne>=0.23.0",
 ]
 
 [project.optional-dependencies]

@@ -115,7 +115,7 @@ def copy_schema(
                 schema.directives,
                 exclude_directives=exclude_directives,
                 exclude_directives_args=exclude_directives_args,
-            ),
+            )
         )
 
     new_schema = GraphQLSchema(

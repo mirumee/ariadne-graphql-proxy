@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, List, Optional, Set, Tuple, Union, cast
 
 from graphql import (
     DirectiveNode,

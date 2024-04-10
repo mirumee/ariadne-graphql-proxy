@@ -149,26 +149,6 @@ class QueryFilter:
             ),
         )
 
-    def extract_variables(
-        self,
-        value: VariableNode | ListValueNode | ObjectValueNode,
-        context: QueryFilterContext,
-    ):
-        if isinstance(value, VariableNode):
-            context.variables.add(value.name.value)
-        elif isinstance(value, ObjectValueNode):
-            for field in value.fields:
-                self.extract_variables(field.value, context)  # type: ignore
-        elif isinstance(value, ListValueNode):
-            for item in value.values:
-                self.extract_variables(item, context)  # type: ignore
-
-    def update_context_variables(
-        self, field_node: FieldNode, context: QueryFilterContext
-    ):
-        for argument in field_node.arguments:
-            self.extract_variables(argument.value, context)  # type: ignore
-
     def filter_field_node(
         self,
         field_node: FieldNode,
@@ -408,3 +388,23 @@ class QueryFilter:
             return self.dependencies[schema_id][type_name]
 
         return None
+
+    def update_context_variables(
+        self, field_node: FieldNode, context: QueryFilterContext
+    ):
+        for argument in field_node.arguments:
+            self.extract_variables(argument.value, context)  # type: ignore
+
+    def extract_variables(
+        self,
+        value: VariableNode | ListValueNode | ObjectValueNode,
+        context: QueryFilterContext,
+    ):
+        if isinstance(value, VariableNode):
+            context.variables.add(value.name.value)
+        elif isinstance(value, ObjectValueNode):
+            for field in value.fields:
+                self.extract_variables(field.value, context)  # type: ignore
+        elif isinstance(value, ListValueNode):
+            for item in value.values:
+                self.extract_variables(item, context)  # type: ignore

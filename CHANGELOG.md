@@ -1,6 +1,7 @@
 # CHANGELOG
 
 ## 0.4.0 (UNRELEASED)
+
 - Fixed handling of nested variables in objects and lists.
 
 

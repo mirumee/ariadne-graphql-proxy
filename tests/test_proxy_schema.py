@@ -744,6 +744,118 @@ async def test_proxy_schema_splits_variables_between_schemas(
 
 
 @pytest.mark.asyncio
+async def test_proxy_schema_handles_object_variables_correctly(
+    httpx_mock,
+    car_schema_json,
+    car_root_value,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/cars/", json=car_schema_json
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/cars/",
+        json={"data": car_root_value["carsByCriteria"]},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/cars/")
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "CarsByCriteriaQuery",
+        {"criteria": {"make": "Toyota", "model": "Corolla", "year": 2020}},
+        parse(
+            """
+            query CarsByCriteriaQuery($criteria: SearchCriteria!) {
+              carsByCriteria(input: { criteria: $criteria }) {
+                id
+                make
+                model
+                year
+              }
+            }
+            """
+        ),
+    )
+
+    cars_request = httpx_mock.get_requests(url="http://graphql.example.com/cars/")[-1]
+
+    assert json.loads(cars_request.content) == {
+        "operationName": "CarsByCriteriaQuery",
+        "variables": {"criteria": {"make": "Toyota", "model": "Corolla", "year": 2020}},
+        "query": dedent(
+            """
+            query CarsByCriteriaQuery($criteria: SearchCriteria!) {
+              carsByCriteria(input: {criteria: $criteria}) {
+                id
+                make
+                model
+                year
+              }
+            }
+            """
+        ).strip(),
+    }
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_handles_list_variables_correctly(
+    httpx_mock,
+    car_schema_json,
+    car_root_value,
+):
+    httpx_mock.add_response(
+        url="http://graphql.example.com/cars/", json=car_schema_json
+    )
+    httpx_mock.add_response(
+        url="http://graphql.example.com/cars/",
+        json={"data": car_root_value["carsByIds"]},
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/cars/")
+    proxy_schema.get_final_schema()
+
+    await proxy_schema.root_resolver(
+        {},
+        "CarsQuery",
+        {"id": "car2"},
+        parse(
+            """
+            query CarsQuery($id: ID!) {
+              carsByIds(ids: [$id]) {
+                id
+                make
+                model
+                year
+              }
+            }
+            """
+        ),
+    )
+
+    cars_request = httpx_mock.get_requests(url="http://graphql.example.com/cars/")[-1]
+
+    assert json.loads(cars_request.content) == {
+        "operationName": "CarsQuery",
+        "variables": {"id": "car2"},
+        "query": dedent(
+            """
+            query CarsQuery($id: ID!) {
+              carsByIds(ids: [$id]) {
+                id
+                make
+                model
+                year
+              }
+            }
+            """
+        ).strip(),
+    }
+
+
+@pytest.mark.asyncio
 async def test_proxy_schema_splits_variables_from_fragments_between_schemas(
     httpx_mock,
     search_schema_json,

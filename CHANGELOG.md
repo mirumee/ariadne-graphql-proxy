@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 0.4.0 (UNRELEASED)
+
+- Fixed handling of nested variables in objects and lists.
+
+
 ## 0.3.0 (2024-03-26)
 
 - Added `CacheSerializer`, `NoopCacheSerializer` and `JSONCacheSerializer`. Changed `CacheBackend`, `InMemoryCache`, `CloudflareCacheBackend` and `DynamoDBCacheBackend` to accept `serializer` initialization option.

@@ -322,3 +322,52 @@ def search_root_value():
 @pytest.fixture
 def gql():
     return lambda x: x
+
+
+@pytest.fixture
+def car_schema():
+    return make_executable_schema(
+        """
+        type Query {
+            carsByIds(ids: [ID!]!): [Car!]!
+            carsByCriteria(input: SearchInput!): [Car!]!
+        }
+
+        type Car {
+            id: ID!
+            make: String!
+            model: String!
+            year: Int!
+        }
+
+        input SearchInput {
+            search: SearchCriteria
+        }
+
+        input SearchCriteria {
+            make: String
+            model: String
+            year: Int
+        }
+        """
+    )
+
+
+@pytest.fixture
+def car_schema_json(car_schema):
+    schema_data = graphql_sync(car_schema, get_introspection_query()).data
+    return {"data": schema_data}
+
+
+@pytest.fixture
+def car_root_value():
+    return {
+        "carsByIds": [
+            {"id": "car1", "make": "Toyota", "model": "Corolla", "year": 2020},
+            {"id": "car2", "make": "Honda", "model": "Civic", "year": 2019},
+        ],
+        "carsByCriteria": [
+            {"id": "car3", "make": "Ford", "model": "Mustang", "year": 2018},
+            {"id": "car4", "make": "Chevrolet", "model": "Camaro", "year": 2017},
+        ],
+    }

@@ -7,7 +7,9 @@ from graphql import (
     FragmentSpreadNode,
     GraphQLSchema,
     InlineFragmentNode,
+    ListValueNode,
     NameNode,
+    ObjectValueNode,
     OperationDefinitionNode,
     SelectionNode,
     SelectionSetNode,
@@ -153,12 +155,7 @@ class QueryFilter:
         schema_obj: str,
         context: QueryFilterContext,
     ) -> Optional[FieldNode]:
-        context.variables.update(
-            argument.value.name.value
-            for argument in field_node.arguments
-            if isinstance(argument.value, VariableNode)
-        )
-
+        self.update_context_variables(field_node, context)
         if not field_node.selection_set:
             return field_node
 
@@ -391,3 +388,23 @@ class QueryFilter:
             return self.dependencies[schema_id][type_name]
 
         return None
+
+    def update_context_variables(
+        self, field_node: FieldNode, context: QueryFilterContext
+    ):
+        for argument in field_node.arguments:
+            self.extract_variables(argument.value, context)  # type: ignore
+
+    def extract_variables(
+        self,
+        value: VariableNode | ListValueNode | ObjectValueNode,
+        context: QueryFilterContext,
+    ):
+        if isinstance(value, VariableNode):
+            context.variables.add(value.name.value)
+        elif isinstance(value, ObjectValueNode):
+            for field in value.fields:
+                self.extract_variables(field.value, context)  # type: ignore
+        elif isinstance(value, ListValueNode):
+            for item in value.values:
+                self.extract_variables(item, context)  # type: ignore

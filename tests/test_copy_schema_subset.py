@@ -699,3 +699,75 @@ def test_copy_schema_subset_excludes_unused_root_field_arg_scalar(gql):
 
     copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
     assert "Money" not in copied_schema.type_map
+
+
+def test_copy_schema_subset_excludes_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on FIELD_DEFINITION
+
+        type Query {
+            lorem: Int! @custom
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_directives=["custom"],
+    )
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_directive_arg_type(gql):
+    schema_str = gql(
+        """
+        scalar Score
+    
+        directive @custom(arg: Score) on FIELD_DEFINITION
+
+        type Query {
+            lorem: Int! @custom
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert_directive_exists(copied_schema, "custom")
+    assert "Score" in copied_schema.type_map
+
+
+def test_copy_schema_subset_excludes_directive_arg_and_type(gql):
+    schema_str = gql(
+        """
+        scalar Score
+    
+        directive @custom(arg: Score) on FIELD_DEFINITION
+
+        type Query {
+            lorem: Int! @custom
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_directives_args={"custom": ["arg"]}
+    )
+    assert_directive_exists(copied_schema, "custom")
+    assert "Score" not in copied_schema.type_map
+
+    directives = {d.name: d for d in copied_schema.directives}
+    assert not directives["custom"].args

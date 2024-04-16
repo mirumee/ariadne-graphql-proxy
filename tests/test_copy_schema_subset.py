@@ -771,3 +771,61 @@ def test_copy_schema_subset_excludes_directive_arg_and_type(gql):
 
     directives = {d.name: d for d in copied_schema.directives}
     assert not directives["custom"].args
+
+
+def test_copy_schema_subset_includes_enum_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on ENUM
+
+        enum Role @custom {
+            USER
+            ADMIN
+        }
+
+        type Query {
+            lorem: Role!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_directives=["custom"],
+    )
+    assert "Role" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_enum_value_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on ENUM_VALUE
+
+        enum Role {
+            USER
+            ADMIN @custom
+        }
+
+        type Query {
+            lorem: Role!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_directives=["custom"],
+    )
+    assert "Role" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")

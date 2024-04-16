@@ -793,13 +793,9 @@ def test_copy_schema_subset_includes_enum_directive(gql):
     )
     schema = build_ast_schema(parse(schema_str))
 
-    copied_schema = copy_schema(
-        schema,
-        queries=["lorem", "dolor"],
-        exclude_directives=["custom"],
-    )
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
     assert "Role" in copied_schema.type_map
-    assert_directive_doesnt_exist(copied_schema, "custom")
+    assert_directive_exists(copied_schema, "custom")
 
 
 def test_copy_schema_subset_includes_enum_value_directive(gql):
@@ -822,10 +818,166 @@ def test_copy_schema_subset_includes_enum_value_directive(gql):
     )
     schema = build_ast_schema(parse(schema_str))
 
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Role" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_input_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on INPUT_OBJECT
+
+        input Search @custom {
+            query: String!
+        }
+
+        type Query {
+            lorem(arg: Search): Int!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Search" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_input_field(gql):
+    schema_str = gql(
+        """
+        input Search {
+            query: String!
+            score: Int!
+        }
+
+        type Query {
+            lorem(arg: Search): Int!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
     copied_schema = copy_schema(
         schema,
         queries=["lorem", "dolor"],
-        exclude_directives=["custom"],
+        exclude_fields={"Search": ["score"]},
     )
-    assert "Role" in copied_schema.type_map
+    assert "Search" in copied_schema.type_map
+    assert "score" not in copied_schema.type_map["Search"].fields
+
+
+def test_copy_schema_subset_includes_input_field_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on INPUT_FIELD_DEFINITION
+
+        input Search {
+            query: String!
+            score: Int! @custom
+        }
+
+        type Query {
+            lorem(arg: Search): Int!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Search" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_input_field_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on INPUT_FIELD_DEFINITION
+
+        input Search {
+            query: String!
+            score: Int! @custom
+        }
+
+        type Query {
+            lorem(arg: Search): Int!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_fields={"Search": ["score"]},
+    )
+    assert "Search" in copied_schema.type_map
+    assert "score" not in copied_schema.type_map["Search"].fields
     assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_input_field_type(gql):
+    schema_str = gql(
+        """
+        scalar Score
+
+        input Search {
+            query: String!
+            score: Score!
+        }
+
+        type Query {
+            lorem(arg: Search): Int!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Search" in copied_schema.type_map
+    assert "Score" in copied_schema.type_map
+
+
+def test_copy_schema_subset_excludes_input_field_type(gql):
+    schema_str = gql(
+        """
+        scalar Score
+
+        input Search {
+            query: String!
+            score: Score!
+        }
+
+        type Query {
+            lorem(arg: Search): Int!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_fields={"Search": ["score"]},
+    )
+    assert "Search" in copied_schema.type_map
+    assert "Score" not in copied_schema.type_map

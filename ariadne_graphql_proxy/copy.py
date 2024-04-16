@@ -25,7 +25,7 @@ from graphql import (
     assert_valid_schema,
 )
 
-from .standard_types import STANDARD_TYPES
+from .standard_types import STANDARD_DIRECTIVES, STANDARD_TYPES
 from .output_types import unwrap_output_type
 
 
@@ -49,54 +49,24 @@ def copy_schema(
     exclude_directives_args: Optional[Dict[str, List[str]]] = None,
 ) -> GraphQLSchema:
     if queries or mutations or subscriptions:
-        roots_dependencies = find_roots_dependencies(
+        return copy_schema_with_subset(
             schema,
-            {
-                "Query": queries or [],
-                "Mutation": mutations or [],
-                "Subscription": subscriptions or [],
-            },
-            exclude_types,
-            exclude_args,
-            exclude_fields,
+            queries=queries or {},
+            mutations=mutations or {},
+            subscriptions=subscriptions or {},
+            exclude_types=_copy_arg(exclude_types, []),
+            exclude_args=_copy_arg(exclude_args, {}),
+            exclude_fields=_copy_arg(exclude_fields, {}),
+            exclude_directives=_copy_arg(exclude_directives, []),
+            exclude_directives_args=_copy_arg(exclude_directives_args, {}),
         )
 
-        fin_exclude_types = exclude_types[:] if exclude_types else []
-        for schema_type in schema.type_map:
-            if (
-                schema_type not in roots_dependencies
-                and schema_type not in STANDARD_TYPES
-            ):
-                fin_exclude_types.append(schema_type)
-
-        fin_exclude_fields = deepcopy(exclude_fields) if exclude_fields else {}
-        if queries:
-            fin_exclude_fields.setdefault("Query", [])
-            if schema.query_type:
-                for field_name in schema.query_type.fields:
-                    if field_name not in queries:
-                        fin_exclude_fields["Query"].append(field_name)
-
-        if mutations:
-            fin_exclude_fields.setdefault("Mutation", [])
-            if schema.mutation_type:
-                for field_name in schema.mutation_type.fields:
-                    if field_name not in mutations:
-                        fin_exclude_fields["Mutation"].append(field_name)
-
-        new_types = copy_schema_types(
-            schema,
-            exclude_types=fin_exclude_types,
-            exclude_args=exclude_args,
-            exclude_fields=fin_exclude_fields,
-        )
-    else:
-        new_types = copy_schema_types(
-            schema,
-            exclude_types=exclude_types,
-            exclude_args=exclude_args,
-            exclude_fields=exclude_fields,
-        )
+    new_types = copy_schema_types(
+        schema,
+        exclude_types=exclude_types,
+        exclude_args=exclude_args,
+        exclude_fields=exclude_fields,
+    )
 
     query_type = None
     if schema.query_type:
@@ -106,17 +76,100 @@ def copy_schema(
     if schema.mutation_type and schema.mutation_type.name in new_types:
         mutation_type = new_types[schema.mutation_type.name]
 
-    if queries or mutations or subscriptions:
-        new_directives = tuple()
-    else:
-        new_directives = (
-            copy_directives(
-                new_types,
-                schema.directives,
-                exclude_directives=exclude_directives,
-                exclude_directives_args=exclude_directives_args,
-            )
-        )
+    new_directives = copy_directives(
+        new_types,
+        schema.directives,
+        exclude_directives=exclude_directives,
+        exclude_directives_args=exclude_directives_args,
+    )
+
+    new_schema = GraphQLSchema(
+        query=query_type,
+        mutation=mutation_type,
+        types=new_types.values(),
+        directives=new_directives,
+    )
+    assert_valid_schema(new_schema)
+    return new_schema
+
+
+def _copy_arg(arg, default):
+    return deepcopy(arg) if arg else default
+
+
+def copy_schema_with_subset(
+    schema: GraphQLSchema,
+    *,
+    queries: List[str],
+    mutations: List[str],
+    subscriptions: List[str],
+    exclude_types: List[str],
+    exclude_args: Dict[str, Dict[str, List[str]]],
+    exclude_fields: Dict[str, List[str]],
+    exclude_directives: List[str],
+    exclude_directives_args: Dict[str, List[str]],
+) -> GraphQLSchema:
+    roots_dependencies = find_roots_dependencies(
+        schema,
+        {
+            "Query": queries or [],
+            "Mutation": mutations or [],
+            "Subscription": subscriptions or [],
+        },
+        exclude_types,
+        exclude_args,
+        exclude_fields,
+        exclude_directives,
+        exclude_directives_args,
+    )
+
+    for schema_type in schema.type_map:
+        if schema_type not in STANDARD_TYPES and schema_type not in roots_dependencies:
+            exclude_types.append(schema_type)
+
+    for schema_directive in schema.directives:
+        directive_name = schema_directive.name
+        if (
+            directive_name not in STANDARD_DIRECTIVES
+            and directive_name not in roots_dependencies
+        ):
+            exclude_directives.append(directive_name)
+
+    if queries:
+        exclude_fields.setdefault("Query", [])
+        if schema.query_type:
+            for field_name in schema.query_type.fields:
+                if field_name not in queries:
+                    exclude_fields["Query"].append(field_name)
+
+    if mutations:
+        exclude_fields.setdefault("Mutation", [])
+        if schema.mutation_type:
+            for field_name in schema.mutation_type.fields:
+                if field_name not in mutations:
+                    exclude_fields["Mutation"].append(field_name)
+
+    new_types = copy_schema_types(
+        schema,
+        exclude_types=exclude_types,
+        exclude_args=exclude_args,
+        exclude_fields=exclude_fields,
+    )
+
+    query_type = None
+    if schema.query_type:
+        query_type = new_types[schema.query_type.name]
+
+    mutation_type = None
+    if schema.mutation_type and schema.mutation_type.name in new_types:
+        mutation_type = new_types[schema.mutation_type.name]
+
+    new_directives = copy_directives(
+        new_types,
+        schema.directives,
+        exclude_directives=exclude_directives,
+        exclude_directives_args=exclude_directives_args,
+    )
 
     new_schema = GraphQLSchema(
         query=query_type,
@@ -160,6 +213,7 @@ class TypesDependenciesVisitor:
         exclude_directives_args: Optional[Dict[str, List[str]]] = None,
     ):
         self.schema = schema
+        self.directives = {d.name: d for d in schema.directives}
         self.exclude_types = exclude_types
         self.exclude_args = exclude_args
         self.exclude_fields = exclude_fields
@@ -224,7 +278,7 @@ class TypesDependenciesVisitor:
 
                 if self.exclude_type_field(root, field_name):
                     raise ValueError(
-                        f"Field '{field_name}' for type '{root}' is specified in both "
+                        f"Field '{field_name}' of type '{root}' is specified in both "
                         f"'exclude_fields' and '{arg_name}'."
                     )
 
@@ -232,17 +286,17 @@ class TypesDependenciesVisitor:
                 field_type = unwrap_output_type(field.type)
                 if self.exclude_type(field_type.name):
                     raise ValueError(
-                        f"Field '{field_name}' for type '{root}' that is specified in "
+                        f"Field '{field_name}' of type '{root}' that is specified in "
                         f"'{arg_name}' has a return type '{field_type.name}' that is "
                         "also specified in 'exclude_types'."
                     )
-
-                self.find_type_dependencies(dependencies, field_type)
 
                 if field.ast_node:
                     self.find_ast_directives_dependencies(
                         dependencies, field.ast_node.directives
                     )
+
+                self.find_type_dependencies(dependencies, field_type)
 
                 for arg_name, arg in field.args.items():
                     if self.exclude_type_field_arg(root, field_name, arg_name):
@@ -263,7 +317,7 @@ class TypesDependenciesVisitor:
     ):
         for directive in directives_ast:
             directive_name = directive.name.value
-            directive_type = self.schema.type_map[directive_name]
+            directive_type = self.directives[directive_name]
             self.find_type_dependencies(dependencies, directive_type)
 
     def find_type_dependencies(
@@ -283,11 +337,17 @@ class TypesDependenciesVisitor:
 
         dependencies.add(type_def.name)
 
+        if isinstance(type_def, GraphQLEnumType):
+            self.find_enum_type_dependencies(dependencies, type_def)
+
         if isinstance(type_def, GraphQLInputObjectType):
             self.find_input_type_dependencies(dependencies, type_def)
 
         if isinstance(type_def, (GraphQLObjectType, GraphQLInterfaceType)):
             self.find_object_type_dependencies(dependencies, type_def)
+
+        if isinstance(type_def, GraphQLScalarType):
+            self.find_scalar_type_dependencies(dependencies, type_def)
 
         if isinstance(type_def, GraphQLUnionType):
             self.find_union_type_dependencies(dependencies, type_def)
@@ -308,6 +368,20 @@ class TypesDependenciesVisitor:
 
             arg_type = unwrap_output_type(arg.type)
             self.find_type_dependencies(dependencies, arg_type)
+
+    def find_enum_type_dependencies(
+        self, dependencies: Set[str], type_def: GraphQLEnumType
+    ):
+        if type_def.ast_node:
+            self.find_ast_directives_dependencies(
+                dependencies, type_def.ast_node.directives
+            )
+
+        for value in type_def.values.values():
+            if value.ast_node:
+                self.find_ast_directives_dependencies(
+                    dependencies, value.ast_node.directives
+                )
 
     def find_input_type_dependencies(
         self, dependencies: Set[str], type_def: GraphQLInputObjectType
@@ -377,6 +451,14 @@ class TypesDependenciesVisitor:
             arg_type = unwrap_output_type(arg.type)
             self.find_type_dependencies(dependencies, arg_type)
 
+    def find_scalar_type_dependencies(
+        self, dependencies: Set[str], type_def: GraphQLScalarType
+    ):
+        if type_def.ast_node:
+            self.find_ast_directives_dependencies(
+                dependencies, type_def.ast_node.directives
+            )
+
     def find_union_type_dependencies(
         self, dependencies: Set[str], type_def: GraphQLUnionType
     ):
@@ -385,7 +467,7 @@ class TypesDependenciesVisitor:
                 dependencies, type_def.ast_node.directives
             )
 
-        for union_type in type_def._types:
+        for union_type in type_def.types:
             self.find_type_dependencies(dependencies, union_type)
 
 

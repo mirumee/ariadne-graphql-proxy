@@ -1,5 +1,5 @@
 import pytest
-from graphql import GraphQLSchema, build_ast_schema, parse, print_schema
+from graphql import GraphQLSchema, build_ast_schema, parse
 
 from ariadne_graphql_proxy import copy_schema
 
@@ -981,3 +981,815 @@ def test_copy_schema_subset_excludes_input_field_type(gql):
     )
     assert "Search" in copied_schema.type_map
     assert "Score" not in copied_schema.type_map
+
+
+def test_copy_schema_subset_includes_interface_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on INTERFACE
+
+        interface Result @custom {
+            id: ID!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_interface_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on INTERFACE
+
+        interface Result @custom {
+            id: ID!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_directives=["custom"]
+    )
+    assert "Result" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_interface_interface(gql):
+    schema_str = gql(
+        """
+        interface Message {
+            message: String!
+        }
+
+        interface Result implements Message {
+            id: ID!
+            message: String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "Message" in copied_schema.type_map
+
+
+def test_copy_schema_subset_exclude_interface_field(gql):
+    schema_str = gql(
+        """
+        interface Result {
+            id: ID!
+            message: String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_fields={"Result": ["message"]},
+    )
+    assert "Result" in copied_schema.type_map
+    assert "message" not in copied_schema.type_map["Result"].fields
+
+
+def test_copy_schema_subset_includes_interface_field_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on FIELD_DEFINITION
+
+        interface Result {
+            id: ID! @custom
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_interface_field_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on FIELD_DEFINITION
+
+        interface Result {
+            id: ID!
+            message: String! @custom
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_fields={"Result": ["message"]}
+    )
+    assert "Result" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_interface_field_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        interface Result {
+            id: ID!
+            money: Money
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "Money" in copied_schema.type_map
+
+
+def test_copy_schema_subset_excludes_interface_field_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        interface Result {
+            id: ID!
+            money: Money
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_fields={"Result": ["money"]},
+    )
+    assert "Result" in copied_schema.type_map
+    assert "Money" not in copied_schema.type_map
+
+
+def test_copy_schema_subset_includes_interface_field_arg_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on ARGUMENT_DEFINITION
+
+        interface Result {
+            id: ID!
+            message(arg: String! @custom): String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "arg" in copied_schema.type_map["Result"].fields["message"].args
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_interface_field_arg_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on ARGUMENT_DEFINITION
+
+        interface Result {
+            id: ID!
+            message(arg: String! @custom): String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_args={"Result": {"message": ["arg"]}},
+    )
+    assert "Result" in copied_schema.type_map
+    assert not copied_schema.type_map["Result"].fields["message"].args
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_interface_field_arg_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        interface Result {
+            id: ID!
+            tax(arg: Money!): Int!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "Money" in copied_schema.type_map
+    assert "arg" in copied_schema.type_map["Result"].fields["tax"].args
+
+
+def test_copy_schema_subset_excludes_interface_field_arg_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        interface Result {
+            id: ID!
+            tax(arg: Money!): Int!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_args={"Result": {"tax": ["arg"]}}
+    )
+    assert "Result" in copied_schema.type_map
+    assert "Money" not in copied_schema.type_map
+    assert not copied_schema.type_map["Result"].fields["tax"].args
+
+
+def test_copy_schema_subset_includes_object_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on OBJECT
+
+        type Result @custom {
+            id: ID!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_object_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on OBJECT
+
+        type Result @custom {
+            id: ID!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_directives=["custom"]
+    )
+    assert "Result" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_object_interface(gql):
+    schema_str = gql(
+        """
+        interface Message {
+            message: String!
+        }
+
+        type Result implements Message {
+            id: ID!
+            message: String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "Message" in copied_schema.type_map
+
+
+def test_copy_schema_subset_exclude_object_field(gql):
+    schema_str = gql(
+        """
+        type Result {
+            id: ID!
+            message: String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_fields={"Result": ["message"]},
+    )
+    assert "Result" in copied_schema.type_map
+    assert "message" not in copied_schema.type_map["Result"].fields
+
+
+def test_copy_schema_subset_includes_object_field_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on FIELD_DEFINITION
+
+        type Result {
+            id: ID! @custom
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_object_field_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on FIELD_DEFINITION
+
+        type Result {
+            id: ID!
+            message: String! @custom
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_fields={"Result": ["message"]}
+    )
+    assert "Result" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_object_field_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        type Result {
+            id: ID!
+            money: Money
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "Money" in copied_schema.type_map
+
+
+def test_copy_schema_subset_excludes_object_field_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        type Result {
+            id: ID!
+            money: Money
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_fields={"Result": ["money"]},
+    )
+    assert "Result" in copied_schema.type_map
+    assert "Money" not in copied_schema.type_map
+
+
+def test_copy_schema_subset_includes_object_field_arg_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on ARGUMENT_DEFINITION
+
+        type Result {
+            id: ID!
+            message(arg: String! @custom): String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "arg" in copied_schema.type_map["Result"].fields["message"].args
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_object_field_arg_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on ARGUMENT_DEFINITION
+
+        type Result {
+            id: ID!
+            message(arg: String! @custom): String!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema,
+        queries=["lorem", "dolor"],
+        exclude_args={"Result": {"message": ["arg"]}},
+    )
+    assert "Result" in copied_schema.type_map
+    assert not copied_schema.type_map["Result"].fields["message"].args
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_object_field_arg_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        type Result {
+            id: ID!
+            tax(arg: Money!): Int!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "Money" in copied_schema.type_map
+    assert "arg" in copied_schema.type_map["Result"].fields["tax"].args
+
+
+def test_copy_schema_subset_excludes_object_field_arg_type(gql):
+    schema_str = gql(
+        """
+        scalar Money
+
+        type Result {
+            id: ID!
+            tax(arg: Money!): Int!
+        }
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_args={"Result": {"tax": ["arg"]}}
+    )
+    assert "Result" in copied_schema.type_map
+    assert "Money" not in copied_schema.type_map
+    assert not copied_schema.type_map["Result"].fields["tax"].args
+
+
+def test_copy_schema_subset_includes_scalar_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on SCALAR
+
+        scalar Money @custom
+
+        type Query {
+            lorem: [Money!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Money" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_scalar_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on SCALAR
+
+        scalar Money @custom
+
+        type Query {
+            lorem: [Money!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_directives=["custom"]
+    )
+    assert "Money" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_union_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on UNION
+
+        type User {
+            id: ID!
+        }
+
+        type Message {
+            message: String!
+        }
+
+        union Result @custom = User | Message
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert_directive_exists(copied_schema, "custom")
+
+
+def test_copy_schema_subset_excludes_union_directive(gql):
+    schema_str = gql(
+        """
+        directive @custom on UNION
+
+        type User {
+            id: ID!
+        }
+
+        type Message {
+            message: String!
+        }
+
+        union Result @custom = User | Message
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_directives=["custom"]
+    )
+    assert "Result" in copied_schema.type_map
+    assert_directive_doesnt_exist(copied_schema, "custom")
+
+
+def test_copy_schema_subset_includes_union_types(gql):
+    schema_str = gql(
+        """
+        type User {
+            id: ID!
+        }
+
+        type Message {
+            message: String!
+        }
+
+        union Result = User | Message
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(schema, queries=["lorem", "dolor"])
+    assert "Result" in copied_schema.type_map
+    assert "User" in copied_schema.type_map
+    assert "Message" in copied_schema.type_map
+
+    result_types = [t.name for t in copied_schema.type_map["Result"].types]
+    assert result_types == ["User", "Message"]
+
+
+def test_copy_schema_subset_excludes_union_types(gql):
+    schema_str = gql(
+        """
+        type User {
+            id: ID!
+        }
+
+        type Message {
+            message: String!
+        }
+
+        union Result = User | Message
+
+        type Query {
+            lorem: [Result!]!
+            ipsum: Int!
+            dolor: Int!
+            met: Int!
+        }
+        """
+    )
+    schema = build_ast_schema(parse(schema_str))
+
+    copied_schema = copy_schema(
+        schema, queries=["lorem", "dolor"], exclude_types=["Message"]
+    )
+    assert "Result" in copied_schema.type_map
+    assert "User" in copied_schema.type_map
+    assert "Message" not in copied_schema.type_map
+
+    assert len(copied_schema.type_map["Result"].types) == 1
+    assert copied_schema.type_map["Result"].types[0].name == "User"

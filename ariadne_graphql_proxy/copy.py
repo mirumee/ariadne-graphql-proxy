@@ -51,9 +51,9 @@ def copy_schema(
     if queries or mutations or subscriptions:
         return copy_schema_with_subset(
             schema,
-            queries=queries or {},
-            mutations=mutations or {},
-            subscriptions=subscriptions or {},
+            queries=queries or [],
+            mutations=mutations or [],
+            subscriptions=subscriptions or [],
             exclude_types=_copy_arg(exclude_types, []),
             exclude_args=_copy_arg(exclude_args, {}),
             exclude_fields=_copy_arg(exclude_fields, {}),

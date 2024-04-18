@@ -470,8 +470,6 @@ All other `Query` fields and types that weren't used by those fields will be rem
 `queries` and `mutations` arguments can be combined with `exclude_types`, `exclude_fields`, `exclude_args`, `exclude_directives` and `exclude_directives_args`.
 
 
-
-
 ## imgix query params resolver
 
 `get_query_params_resolver` returns a preconfigured resolver that takes URL string and passed arguments to generate a URL with arguments as query params. It can be used to add [rendering options](https://docs.imgix.com/apis/rendering) to [imgix.com](https://imgix.com) image URL.

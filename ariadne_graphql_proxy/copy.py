@@ -26,7 +26,7 @@ from graphql import (
 )
 
 from .standard_types import STANDARD_DIRECTIVES, STANDARD_TYPES
-from .output_types import unwrap_output_type
+from .unwrap_type import unwrap_graphql_type
 
 
 ROOTS_ARGS_NAMES = {
@@ -221,10 +221,10 @@ class TypesDependenciesVisitor:
         self.exclude_directives_args = exclude_directives_args
 
     def exclude_type(self, type_name: str) -> bool:
-        return self.exclude_types and type_name in self.exclude_types
+        return bool(self.exclude_types and type_name in self.exclude_types)
 
     def exclude_type_field(self, type_name: str, field_name: str) -> bool:
-        return (
+        return bool(
             self.exclude_fields
             and type_name in self.exclude_fields
             and field_name in self.exclude_fields[type_name]
@@ -233,7 +233,7 @@ class TypesDependenciesVisitor:
     def exclude_type_field_arg(
         self, type_name: str, field_name: str, arg_name: str
     ) -> bool:
-        return (
+        return bool(
             self.exclude_args
             and type_name in self.exclude_args
             and field_name in self.exclude_args[type_name]
@@ -241,10 +241,10 @@ class TypesDependenciesVisitor:
         )
 
     def exclude_directive(self, type_name: str) -> bool:
-        return self.exclude_directives and type_name in self.exclude_directives
+        return bool(self.exclude_directives and type_name in self.exclude_directives)
 
     def exclude_directive_arg(self, type_name: str, arg_name: str) -> bool:
-        return (
+        return bool(
             self.exclude_directives_args
             and type_name in self.exclude_directives_args
             and arg_name in self.exclude_directives_args[type_name]
@@ -283,7 +283,7 @@ class TypesDependenciesVisitor:
                     )
 
                 field = root_type.fields[field_name]
-                field_type = unwrap_output_type(field.type)
+                field_type = unwrap_graphql_type(field.type)
                 if self.exclude_type(field_type.name):
                     raise ValueError(
                         f"Field '{field_name}' of type '{root}' that is specified in "
@@ -307,13 +307,15 @@ class TypesDependenciesVisitor:
                             dependencies, arg.ast_node.directives
                         )
 
-                    arg_type = unwrap_output_type(arg.type)
+                    arg_type = unwrap_graphql_type(arg.type)
                     self.find_type_dependencies(dependencies, arg_type)
 
         return [dep for dep in dependencies if dep not in STANDARD_TYPES]
 
     def find_ast_directives_dependencies(
-        self, dependencies: Set[str], directives_ast: Tuple[DirectiveNode]
+        self,
+        dependencies: Set[str],
+        directives_ast: Tuple[DirectiveNode, ...],
     ):
         for directive in directives_ast:
             directive_name = directive.name.value
@@ -323,7 +325,7 @@ class TypesDependenciesVisitor:
     def find_type_dependencies(
         self,
         dependencies: Set[str],
-        type_def: GraphQLNamedType,
+        type_def: Union[GraphQLNamedType, GraphQLDirective],
     ):
         if type_def.name in dependencies:
             return
@@ -366,7 +368,7 @@ class TypesDependenciesVisitor:
             if self.exclude_directive_arg(type_def.name, arg_name):
                 continue
 
-            arg_type = unwrap_output_type(arg.type)
+            arg_type = unwrap_graphql_type(arg.type)
             self.find_type_dependencies(dependencies, arg_type)
 
     def find_enum_type_dependencies(
@@ -400,7 +402,7 @@ class TypesDependenciesVisitor:
                     dependencies, field.ast_node.directives
                 )
 
-            field_type = unwrap_output_type(field.type)
+            field_type = unwrap_graphql_type(field.type)
             self.find_type_dependencies(dependencies, field_type)
 
     def find_object_type_dependencies(
@@ -436,7 +438,7 @@ class TypesDependenciesVisitor:
                 dependencies, field_def.ast_node.directives
             )
 
-        field_type = unwrap_output_type(field_def.type)
+        field_type = unwrap_graphql_type(field_def.type)
         self.find_type_dependencies(dependencies, field_type)
 
         for arg_name, arg in field_def.args.items():
@@ -448,7 +450,7 @@ class TypesDependenciesVisitor:
                     dependencies, arg.ast_node.directives
                 )
 
-            arg_type = unwrap_output_type(arg.type)
+            arg_type = unwrap_graphql_type(arg.type)
             self.find_type_dependencies(dependencies, arg_type)
 
     def find_scalar_type_dependencies(

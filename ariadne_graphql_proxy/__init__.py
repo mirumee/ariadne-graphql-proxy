@@ -45,6 +45,7 @@ from .query_filter import QueryFilter, QueryFilterContext
 from .remote_schema import get_remote_schema
 from .resolvers import set_resolver, unset_resolver
 from .selections import merge_selection_sets, merge_selections
+from .unwrap_type import unwrap_graphql_type
 
 __all__ = [
     "ForeignKeyResolver",
@@ -95,4 +96,5 @@ __all__ = [
     "set_resolver",
     "setup_root_resolver",
     "unset_resolver",
+    "unwrap_graphql_type",
 ]

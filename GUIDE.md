@@ -445,6 +445,32 @@ app = GraphQL(
 )
 ```
 
+## Creating a schema that is a subset of other schema
+
+Following APIs support creating a new schema that is a subset of another schema:
+
+- `ProxySchema.add_remote_schema`
+- `ProxySchema.add_schema`
+- `copy_schema`
+
+To create a subset of other schema, specify which fields for `queries` and (optionally) `mutations` should be available in final schema:
+
+```python
+from ariadne_graphql_proxy import ProxySchema
+
+proxy_schema = ProxySchema()
+proxy_schema.add_remote_schema(
+    "https://example.com/e-commerce/",
+    queries=["categories", "products"],
+)
+```
+
+All other `Query` fields and types that weren't used by those fields will be removed from the final schema, making it much smaller. If `mutations` option was not used, `Mutation` type will also be removed from the schema.
+
+`queries` and `mutations` arguments can be combined with `exclude_types`, `exclude_fields`, `exclude_args`, `exclude_directives` and `exclude_directives_args`.
+
+
+
 
 ## imgix query params resolver
 

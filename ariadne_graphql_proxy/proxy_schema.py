@@ -422,7 +422,6 @@ class ProxySchema:
                 isinstance(subquery_data.get("extensions"), dict)
                 and self.proxy_extensions[schema_id]
             ):
-                print("HERE")
                 root_extensions[label] = subquery_data["extensions"]
 
         if root_errors or root_extensions:

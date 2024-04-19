@@ -1,5 +1,12 @@
 from graphql import GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLString
 
+STANDARD_DIRECTIVES = (
+    "skip",
+    "include",
+    "deprecated",
+    "specifiedBy",
+)
+
 STANDARD_TYPES = (
     "ID",
     "Boolean",

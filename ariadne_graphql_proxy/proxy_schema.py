@@ -64,6 +64,8 @@ class ProxySchema:
         url: str,
         headers: Optional[ProxyHeaders] = None,
         *,
+        queries: Optional[List[str]] = None,
+        mutations: Optional[List[str]] = None,
         exclude_types: Optional[List[str]] = None,
         exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
         exclude_fields: Optional[Dict[str, List[str]]] = None,
@@ -85,6 +87,8 @@ class ProxySchema:
             remote_schema,
             url,
             headers,
+            queries=queries,
+            mutations=mutations,
             exclude_types=exclude_types,
             exclude_args=exclude_args,
             exclude_fields=exclude_fields,
@@ -102,6 +106,8 @@ class ProxySchema:
         url: Optional[str] = None,
         headers: Optional[ProxyHeaders] = None,
         *,
+        queries: Optional[List[str]] = None,
+        mutations: Optional[List[str]] = None,
         exclude_types: Optional[List[str]] = None,
         exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
         exclude_fields: Optional[Dict[str, List[str]]] = None,
@@ -113,7 +119,9 @@ class ProxySchema:
         proxy_extensions: bool = True,
     ) -> int:
         if (
-            exclude_types
+            queries
+            or mutations
+            or exclude_types
             or exclude_args
             or exclude_fields
             or exclude_directives
@@ -121,6 +129,8 @@ class ProxySchema:
         ):
             schema = copy_schema(
                 schema,
+                queries=queries,
+                mutations=mutations,
                 exclude_types=exclude_types,
                 exclude_args=exclude_args,
                 exclude_fields=exclude_fields,
@@ -412,7 +422,6 @@ class ProxySchema:
                 isinstance(subquery_data.get("extensions"), dict)
                 and self.proxy_extensions[schema_id]
             ):
-                print("HERE")
                 root_extensions[label] = subquery_data["extensions"]
 
         if root_errors or root_extensions:

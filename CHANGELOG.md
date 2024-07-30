@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 0.4.0 (UNRELEASED)
+## 0.4.0 (2024-07-30)
 
 - Fixed handling of nested variables in objects and lists.
 - Added `queries`, `mutations` and `subscriptions` APIs to `ProxySchema.add_remote_schema`, `ProxySchema.add_schema` and `copy_schema` for creating schemas that are subsets of other, larger schemas.

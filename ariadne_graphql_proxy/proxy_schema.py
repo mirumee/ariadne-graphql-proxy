@@ -352,35 +352,28 @@ class ProxySchema:
         return self.schema
 
     def _create_alias_aware_resolver(self, field_name: str, original_resolver=None):
+        def get_from_obj(obj, key):
+            try:
+                return obj[key] if isinstance(obj, dict) else getattr(obj, key)
+            except (KeyError, AttributeError):
+                return None
+
         def resolver(obj, info, **kwargs):
             if original_resolver:
                 try:
                     result = original_resolver(obj, info, **kwargs)
                     if result is not None:
                         return result
-                except (AttributeError, KeyError, TypeError):
+                except (AttributeError, KeyError):
                     pass
 
-            if info.field_nodes:
-                field_node = info.field_nodes[0]
+            for node in info.field_nodes:
+                if node.alias:
+                    value = get_from_obj(obj, node.alias.value)
+                    if value is not None:
+                        return value
 
-                if field_node.alias:
-                    alias_name = field_node.alias.value
-
-                    if isinstance(obj, dict):
-                        if alias_name in obj:
-                            return obj[alias_name]
-
-                    elif hasattr(obj, alias_name):
-                        return getattr(obj, alias_name)
-
-            if isinstance(obj, dict):
-                return obj.get(field_name)
-
-            if hasattr(obj, field_name):
-                return getattr(obj, field_name)
-
-            return None
+            return get_from_obj(obj, field_name)
 
         return resolver
 

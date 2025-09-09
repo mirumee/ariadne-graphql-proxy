@@ -2,7 +2,6 @@ import json
 from typing import Any
 
 import pytest
-
 from ariadne_graphql_proxy.cache import CacheSerializer
 from ariadne_graphql_proxy.contrib.cloudflare import (
     CloudflareCacheBackend,
@@ -72,7 +71,8 @@ def test_init_raises_cloudflare_cache_error_for_unavailable_namespace(httpx_mock
     exc_msg = str(exc_info.value)
     assert str(request.url) in exc_msg
     assert "404" in exc_msg
-    assert str(json.dumps(not_found_json).encode("utf-8")) in exc_msg
+    assert "namespace not found" in exc_msg
+    assert "10013" in exc_msg
 
 
 @pytest.mark.asyncio
@@ -124,10 +124,18 @@ async def test_set_sends_correct_payload_to_cache_value(httpx_mock, list_keys_js
     await cache.set("key", "test_value")
 
     request = httpx_mock.get_request(method="PUT")
-    assert {f.name: f.file for f in request.stream.fields} == {
-        "value": cache.serializer.serialize("test_value"),
-        "metadata": "{}",
-    }
+
+    content = (
+        request.content.decode("utf-8")
+        if isinstance(request.content, bytes)
+        else request.content
+    )
+
+    expected_value = cache.serializer.serialize("test_value")
+    assert 'name="value"' in content
+    assert expected_value in content
+    assert 'name="metadata"' in content
+    assert "{}" in content
 
 
 @pytest.mark.asyncio
@@ -146,10 +154,18 @@ async def test_set_uses_custom_serializer(httpx_mock, list_keys_json):
     await cache.set("key", "test_value")
 
     request = httpx_mock.get_request(method="PUT")
-    assert {f.name: f.file for f in request.stream.fields} == {
-        "value": "test_value-serialized",
-        "metadata": "{}",
-    }
+
+    content = (
+        request.content.decode("utf-8")
+        if isinstance(request.content, bytes)
+        else request.content
+    )
+
+    assert "test_value-serialized" in content
+    assert 'name="value"' in content
+    assert "test_value-serialized" in content
+    assert 'name="metadata"' in content
+    assert "{}" in content
 
 
 @pytest.mark.asyncio

@@ -333,6 +333,12 @@ class ProxySchema:
                     field_type = field_type.of_type
                 self.fields_types[type_name][field_name] = field_type.name
 
+                field_def = type_def.fields[field_name]
+                original_resolver = field_def.resolve
+                field_def.resolve = self._create_alias_aware_resolver(
+                    field_name, original_resolver
+                )
+
         self.query_filter = QueryFilter(
             self.schema,
             self.schemas,
@@ -344,6 +350,39 @@ class ProxySchema:
         )
 
         return self.schema
+
+    def _create_alias_aware_resolver(self, field_name: str, original_resolver=None):
+        def resolver(obj, info, **kwargs):
+            if original_resolver:
+                try:
+                    result = original_resolver(obj, info, **kwargs)
+                    if result is not None:
+                        return result
+                except (AttributeError, KeyError, TypeError):
+                    pass
+
+            if info.field_nodes:
+                field_node = info.field_nodes[0]
+
+                if field_node.alias:
+                    alias_name = field_node.alias.value
+
+                    if isinstance(obj, dict):
+                        if alias_name in obj:
+                            return obj[alias_name]
+
+                    elif hasattr(obj, alias_name):
+                        return getattr(obj, alias_name)
+
+            if isinstance(obj, dict):
+                return obj.get(field_name)
+
+            if hasattr(obj, field_name):
+                return getattr(obj, field_name)
+
+            return None
+
+        return resolver
 
     async def root_resolver(
         self,

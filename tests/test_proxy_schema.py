@@ -3,7 +3,7 @@ from textwrap import dedent
 from unittest.mock import ANY, Mock, call
 
 import pytest
-from graphql import parse, print_schema
+from graphql import GraphQLObjectType, parse, print_schema
 
 from ariadne_graphql_proxy import ProxyRootValue, ProxySchema
 
@@ -1605,3 +1605,341 @@ async def test_root_value_for_remote_schema_includes_field_dependencies(
             """
         ).strip(),
     }
+
+
+@pytest.mark.asyncio
+async def test_alias_aware_resolver_is_added_to_fields():
+    proxy_schema = ProxySchema()
+
+    schema_def = """
+        type Query {
+            product: Product
+        }
+
+        type Product {
+            id: ID!
+            name: String!
+            attributes: [Attribute!]
+        }
+
+        type Attribute {
+            key: String!
+            value: String!
+        }
+        """
+
+    from graphql import build_schema
+
+    schema = build_schema(schema_def)
+    proxy_schema.add_schema(schema)
+
+    final_schema = proxy_schema.get_final_schema()
+
+    product_type = final_schema.type_map["Product"]
+    assert isinstance(product_type, GraphQLObjectType)
+    assert product_type.fields["attributes"].resolve is not None
+    assert product_type.fields["name"].resolve is not None
+    assert product_type.fields["id"].resolve is not None
+
+
+@pytest.mark.asyncio
+async def test_alias_aware_resolver_handles_aliased_field(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "complex": {
+                    "id": "123",
+                    "displayName": "Test Name",
+                }
+            }
+        }
+    )
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse("query Query { complex { id, displayName: name } }"),
+    )
+
+    assert root_value == {
+        "complex": {
+            "id": "123",
+            "displayName": "Test Name",
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_multiple_aliases_for_same_field(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "complex": {
+                    "name1": "Test Name",
+                    "name2": "Test Name",
+                    "name3": "Test Name",
+                }
+            }
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    proxy_schema.get_final_schema()
+
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+                complex {
+                    name1: name
+                    name2: name
+                    name3: name
+                }
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "complex": {
+            "name1": "Test Name",
+            "name2": "Test Name",
+            "name3": "Test Name",
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_alias_with_arguments(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "complex": {
+                    "name1": "Test Name",
+                }
+            }
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    proxy_schema.get_final_schema()
+
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+                complex {
+                    name1: name(arg: test)
+                }
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "complex": {
+            "name1": "Test Name",
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_nested_aliases(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "myComplex": {
+                    "identifier": "123",
+                    "displayName": "Test",
+                    "myGroup": {"groupId": "456", "groupName": "Group Test"},
+                }
+            }
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+
+    proxy_schema.get_final_schema()
+
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Query {
+                myComplex: complex {
+                    identifier: id
+                    displayName: name
+                    myGroup: group {
+                        groupId: id
+                        groupName: name
+                    }
+                }
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "myComplex": {
+            "identifier": "123",
+            "displayName": "Test",
+            "myGroup": {"groupId": "456", "groupName": "Group Test"},
+        }
+    }
+
+
+@pytest.mark.asyncio
+async def test_alias_aware_resolver_preserves_original_resolver():
+    def original_resolver(obj, info):
+        return "original_value"
+
+    from graphql import build_schema
+
+    schema = build_schema(
+        """
+        type Query {
+            test: String
+        }
+        """
+    )
+
+    schema.type_map["Query"].fields["test"].resolve = original_resolver
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+
+    final_schema = proxy_schema.get_final_schema()
+
+    query_type = final_schema.type_map["Query"]
+    new_resolver = query_type.fields["test"].resolve
+    assert new_resolver is not None
+    assert new_resolver != original_resolver
+
+    info = Mock()
+    info.field_nodes = []
+
+    result = new_resolver({}, info)
+    assert result == "original_value"
+
+
+@pytest.mark.asyncio
+async def test_alias_aware_resolver_handles_dict_and_object_sources():
+    from graphql import build_schema
+
+    schema = build_schema(
+        """
+        type Query {
+            test: String
+        }
+        """
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    final_schema = proxy_schema.get_final_schema()
+
+    resolver = final_schema.type_map["Query"].fields["test"].resolve
+
+    info = Mock()
+    info.field_nodes = [Mock()]
+    info.field_nodes[0].alias = None
+
+    dict_source = {"test": "dict_value"}
+    assert resolver(dict_source, info) == "dict_value"
+
+    class ObjSource:
+        test = "obj_value"
+
+    obj_source = ObjSource()
+    assert resolver(obj_source, info) == "obj_value"
+
+    info.field_nodes[0].alias = Mock()
+    info.field_nodes[0].alias.value = "myAlias"
+    dict_with_alias = {"myAlias": "alias_value", "test": "original_value"}
+    assert resolver(dict_with_alias, info) == "alias_value"
+
+
+@pytest.mark.asyncio
+async def test_alias_aware_resolver_returns_none_when_field_not_found():
+    from graphql import build_schema
+
+    schema = build_schema(
+        """
+        type Query {
+            test: String
+        }
+        """
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    final_schema = proxy_schema.get_final_schema()
+
+    resolver = final_schema.type_map["Query"].fields["test"].resolve
+
+    info = Mock()
+    info.field_nodes = []
+
+    assert resolver({}, info) is None
+
+    class EmptyObj:
+        pass
+
+    assert resolver(EmptyObj(), info) is None
+
+
+@pytest.mark.asyncio
+async def test_get_final_schema_adds_resolvers_only_to_object_types():
+    from graphql import build_schema
+
+    schema = build_schema(
+        """
+        type Query {
+            test: String
+        }
+
+        enum TestEnum {
+            VALUE1
+            VALUE2
+        }
+
+        input TestInput {
+            field: String
+        }
+
+        interface TestInterface {
+            id: ID!
+        }
+        """
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_schema(schema)
+    final_schema = proxy_schema.get_final_schema()
+
+    for type_name, type_def in final_schema.type_map.items():
+        if isinstance(type_def, GraphQLObjectType) and not type_name.startswith("__"):
+            for field_name, field_def in type_def.fields.items():
+                assert (
+                    field_def.resolve is not None
+                ), f"Missing resolver for {type_name}.{field_name}"

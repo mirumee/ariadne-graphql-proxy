@@ -1080,7 +1080,7 @@ async def test_proxy_schema_handles_omitted_optional_variables(
     schema_json,
 ):
     httpx_mock.add_response(url="http://graphql.example.com/", json=schema_json)
-
+    httpx_mock.add_response(url="http://graphql.example.com/", json={"data": {}})
     proxy_schema = ProxySchema()
     proxy_schema.add_remote_schema("http://graphql.example.com/")
     proxy_schema.get_final_schema()
@@ -1563,7 +1563,7 @@ async def test_root_value_for_remote_schema_includes_field_dependencies(
     httpx_mock, schema_json
 ):
     httpx_mock.add_response(url="http://graphql.example.com/", json=schema_json)
-
+    httpx_mock.add_response(url="http://graphql.example.com/", json={"data": {}})
     proxy_schema = ProxySchema()
     schema_id = proxy_schema.add_remote_schema("http://graphql.example.com/")
 

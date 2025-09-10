@@ -1,7 +1,7 @@
-import json
 from typing import Any
 
 import pytest
+
 from ariadne_graphql_proxy.cache import CacheSerializer
 from ariadne_graphql_proxy.contrib.cloudflare import (
     CloudflareCacheBackend,

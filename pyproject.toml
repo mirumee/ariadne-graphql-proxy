@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "ariadne-graphql-proxy"
 description = "Ariadne toolkit for building GraphQL proxies."
-authors = [{ name = "Mirumee Software", email = "hello@mirumee.com" }]
+authors = [{ name = "Mirumee Software", email = "ariadne@mirumee.com" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [

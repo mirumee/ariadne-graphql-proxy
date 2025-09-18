@@ -69,4 +69,4 @@ Pull requests are also welcome! We only request that PRs providing new features 
 Also make sure you follow [@AriadneGraphQL](https://twitter.com/AriadneGraphQL) on Twitter for latest updates, news and random musings!
 
 **Crafted with ❤️ by [Mirumee Software](http://mirumee.com)**
-hello@mirumee.com
+ariadne@mirumee.com

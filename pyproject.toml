@@ -68,7 +68,7 @@ check = [
 ## Types environment
 
 [tool.hatch.envs.types]
-features = ["types"]
+features = ["types", "test", "orjson", "aws"]
 
 [tool.hatch.envs.types.scripts]
 check = ["mypy ariadne_graphql_proxy"]
@@ -76,7 +76,7 @@ check = ["mypy ariadne_graphql_proxy"]
 ## Test environments
 
 [tool.hatch.envs.hatch-test]
-features = ["test"]
+features = ["test", "orjson", "aws"]
 extra-args = []
 
 [[tool.hatch.envs.hatch-test.matrix]]

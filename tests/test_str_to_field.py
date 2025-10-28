@@ -3,6 +3,7 @@ from graphql import (
     BooleanValueNode,
     FieldDefinitionNode,
     GraphQLArgument,
+    GraphQLField,
     GraphQLNonNull,
     GraphQLScalarType,
     GraphQLSyntaxError,
@@ -11,7 +12,6 @@ from graphql import (
     NamedTypeNode,
     NonNullTypeNode,
     parse,
-    GraphQLField,
 )
 
 from ariadne_graphql_proxy.str_to_field import (

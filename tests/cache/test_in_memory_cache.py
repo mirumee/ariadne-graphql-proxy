@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-
 from ariadne_graphql_proxy.cache import InMemoryCache
 
 

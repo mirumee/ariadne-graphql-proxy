@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, List, cast
+from typing import Dict, List, Sequence, cast
 
 from graphql import FieldNode, SelectionNode, SelectionSetNode
 

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import httpx
 from graphql import (
     GraphQLSchema,
@@ -8,9 +6,7 @@ from graphql import (
 )
 
 
-def get_remote_schema(
-    graphql_url: str, headers: Optional[dict] = None
-) -> GraphQLSchema:
+def get_remote_schema(graphql_url: str, headers: dict | None = None) -> GraphQLSchema:
     response = httpx.post(
         graphql_url,
         headers=headers,

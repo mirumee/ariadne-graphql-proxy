@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from ariadne.types import BaseProxyRootValue, GraphQLResult
 
@@ -8,9 +8,9 @@ class ProxyRootValue(BaseProxyRootValue):
 
     def __init__(
         self,
-        root_value: Optional[dict] = None,
-        errors: Optional[List[dict]] = None,
-        extensions: Optional[dict] = None,
+        root_value: dict | None = None,
+        errors: List[dict] | None = None,
+        extensions: dict | None = None,
     ):
         super().__init__(root_value)
         self.errors = errors

@@ -1,6 +1,6 @@
 from functools import wraps
 from inspect import isawaitable
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable
 
 from graphql import GraphQLResolveInfo
 
@@ -14,8 +14,8 @@ class NoCache:
 
 def simple_cached_resolver(
     backend: CacheBackend,
-    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
-    ttl: Optional[int] = None,
+    prefix: str | Callable[[GraphQLResolveInfo], str] | None = None,
+    ttl: int | None = None,
 ):
     def make_resolver_cached(f):
         @wraps(f)

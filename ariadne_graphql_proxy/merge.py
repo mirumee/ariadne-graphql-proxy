@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Optional, Union, cast
+from typing import cast
 
 from graphql import (
     GraphQLArgument,
@@ -82,7 +82,7 @@ def merge_type_maps(type_map1: dict, type_map2: dict) -> dict:
 
 def merge_types(
     merged_types: dict, type1: GraphQLType, type2: GraphQLType
-) -> Optional[GraphQLType]:
+) -> GraphQLType | None:
     if isinstance(type1, GraphQLEnumType) and isinstance(type2, GraphQLEnumType):
         return merge_enums(enum1=type1, enum2=type2)
 
@@ -308,8 +308,8 @@ def merge_fields(
 
 
 def compare_types(
-    type1: Union[GraphQLOutputType, GraphQLInputType],
-    type2: Union[GraphQLOutputType, GraphQLInputType],
+    type1: GraphQLOutputType | GraphQLInputType,
+    type2: GraphQLOutputType | GraphQLInputType,
 ) -> bool:
     if isinstance(type1, GraphQLNamedType) and isinstance(type2, GraphQLNamedType):
         return type1.name == type2.name
@@ -441,7 +441,7 @@ def merge_inputs(
 
 def get_input_custom_out_type(
     input_type: GraphQLInputObjectType,
-) -> Optional[GraphQLInputFieldOutType]:
+) -> GraphQLInputFieldOutType | None:
     if input_type.out_type is None:
         return None
     if input_type.out_type is GraphQLInputObjectType.out_type:

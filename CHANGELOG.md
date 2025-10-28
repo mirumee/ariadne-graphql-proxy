@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 0.5.1 (2025-10-28)
+
+- Maintenance work.
+- Support new python version, add github actions...
+
+## 0.5.0 (2025-09-10)
+
+- Fixed schema resolver to allow using aliases during queries.
+
+
 ## 0.4.0 (2024-07-30)
 
 - Fixed handling of nested variables in objects and lists.

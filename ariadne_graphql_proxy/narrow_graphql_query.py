@@ -1,11 +1,11 @@
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from graphql import (
-    InlineFragmentNode,
     FieldNode,
-    FragmentSpreadNode,
     FragmentDefinitionNode,
+    FragmentSpreadNode,
     GraphQLResolveInfo,
+    InlineFragmentNode,
     OperationDefinitionNode,
     SelectionNode,
     SelectionSetNode,
@@ -46,12 +46,12 @@ def narrow_graphql_query(
     return operation, set(variables)
 
 
-def narrow_graphql_query_by_path(
+def narrow_graphql_query_by_path(  # noqa: C901
     path: List[str],
     selection_set: SelectionSetNode,
     fragments: Dict[str, FragmentDefinitionNode],
     variables: List[str],
-) -> Optional[SelectionSetNode]:
+) -> SelectionSetNode | None:
     if not path:
         return get_graphql_query_subset(selection_set, fragments, variables)
 

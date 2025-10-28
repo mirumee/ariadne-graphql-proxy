@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import httpx
 
@@ -26,9 +26,9 @@ class CloudflareCacheBackend(CacheBackend):
         self,
         account_id: str,
         namespace_id: str,
-        headers: Optional[Dict[str, str]] = None,
+        headers: Dict[str, str] | None = None,
         base_url: str = "https://api.cloudflare.com/client/v4",
-        serializer: Optional[CacheSerializer] = None,
+        serializer: CacheSerializer | None = None,
     ) -> None:
         super().__init__(serializer or JSONCacheSerializer())
 
@@ -49,7 +49,7 @@ class CloudflareCacheBackend(CacheBackend):
         if not response.is_success or not response.json().get("success", False):
             raise CloudflareCacheError(response)
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
+    async def set(self, key: str, value: Any, ttl: int | None = None):
         async with httpx.AsyncClient(
             base_url=self.base_url, headers=self.headers
         ) as client:

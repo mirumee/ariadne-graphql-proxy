@@ -1,5 +1,5 @@
 import hashlib
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict
 
 from graphql import (
     FieldNode,
@@ -16,8 +16,8 @@ from graphql import (
 def get_info_cache_key(
     obj: Any,
     info: GraphQLResolveInfo,
-    arguments: Optional[Dict[str, Any]],
-    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
+    arguments: Dict[str, Any] | None,
+    prefix: str | Callable[[GraphQLResolveInfo], str] | None = None,
 ) -> str:
     """Builds cache key unique to this resolver call using its info.
 
@@ -50,8 +50,8 @@ def get_operation_cache_key(
     obj: Any,
     info: GraphQLResolveInfo,
     operation: OperationDefinitionNode,
-    arguments: Optional[Dict[str, Any]],
-    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
+    arguments: Dict[str, Any] | None,
+    prefix: str | Callable[[GraphQLResolveInfo], str] | None = None,
 ) -> str:
     """Builds cache key unique to this resolver call using its operation definition.
 
@@ -83,8 +83,8 @@ def get_operation_cache_key(
 def get_simple_cache_key(
     obj: Any,
     info: GraphQLResolveInfo,
-    arguments: Optional[Dict[str, Any]],
-    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
+    arguments: Dict[str, Any] | None,
+    prefix: str | Callable[[GraphQLResolveInfo], str] | None = None,
 ) -> str:
     """Builds cache key unique for given `obj` and `arguments`.
 
@@ -113,8 +113,8 @@ def get_simple_cache_key(
 
 def get_cache_prefix(
     info: GraphQLResolveInfo,
-    prefix: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]],
-) -> Optional[str]:
+    prefix: str | Callable[[GraphQLResolveInfo], str] | None,
+) -> str | None:
     if callable(prefix):
         return prefix(info)
     return prefix or None
@@ -211,7 +211,7 @@ def get_flattened_fragment(
     return ",".join(fields)
 
 
-def get_arguments_cache_seed(arguments: Optional[Dict[str, Any]]) -> str:
+def get_arguments_cache_seed(arguments: Dict[str, Any] | None) -> str:
     if not arguments:
         return ""
 

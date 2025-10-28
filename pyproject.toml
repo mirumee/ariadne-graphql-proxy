@@ -6,6 +6,7 @@ build-backend = "hatchling.build"
 name = "ariadne-graphql-proxy"
 description = "Ariadne toolkit for building GraphQL proxies."
 authors = [{ name = "Mirumee Software", email = "ariadne@mirumee.com" }]
+dynamic = ["version"]
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
@@ -16,59 +17,95 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-version = "0.5.0"
-dependencies = [
-  "graphql-core>=3.2.0,<3.3",
-  "httpx",
-  "ariadne>=0.23.0",
-]
+dependencies = ["graphql-core>=3.2.0,<3.3", "httpx", "ariadne>=0.23.0"]
 
 [project.optional-dependencies]
+dev = ["ipdb"]
 test = [
-  "black",
   "freezegun",
   "moto[dynamodb]",
-  "mypy",
   "pytest",
   "pytest-mock",
   "pytest-httpx",
   "pytest-asyncio",
   "ruff",
 ]
+types = ["mypy>=1.0.0"]
 
-orjson = [
-  "orjson",
-]
+orjson = ["orjson"]
 
-aws = [
-  "asgiref",
-  "boto3",
-]
+aws = ["asgiref", "boto3"]
 
 [project.urls]
 "Homepage" = "https://ariadnegraphql.org/"
 "Repository" = "https://github.com/mirumee/ariadne-graphql-proxy"
 "Bug Tracker" = "https://github.com/mirumee/ariadne-graphql-proxy/issues"
 "Community" = "https://github.com/mirumee/ariadne/discussions"
-"Twitter" = "https://twitter.com/AriadneGraphQL"
 
 [tool.hatch.build]
-include = [
-  "ariadne_graphql_proxy/**/*.py",
-  "ariadne_graphql_proxy/py.typed",
-]
-exclude = [
-  "tests",
-]
+include = ["ariadne_graphql_proxy/**/*.py", "ariadne_graphql_proxy/py.typed"]
+exclude = ["tests"]
 
 [tool.hatch.envs.default]
-features = ["test"]
+features = ["dev", "types"]
 
-[tool.black]
+[tool.hatch.envs.default.scripts]
+check = [
+  "hatch fmt",
+  "hatch test -a -p",
+  "hatch test --cover",
+  "hatch run types:check",
+]
+
+## Types environment
+
+[tool.hatch.envs.types.scripts]
+check = [
+  "mypy ariadne_graphql_proxy",
+]
+
+## Test environments
+
+[tool.hatch.envs.hatch-test]
+features = ["test"]
+extra-args = []
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.10", "3.11", "3.12", "3.13"]
+
+## Ruff configuration
+
+[tool.ruff]
 line-length = 88
-target-version = ['py310', 'py311']
+target-version = "py310"
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 99
+exclude = ["tests/main/clients/*/expected_client/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "G", "I", "N", "Q", "UP", "C90", "T20", "TID"]
+ignore = ["TID252", "UP006", "UP035"]
+task-tags = ["NOTE", "TODO", "FIXME", "HACK", "XXX"]
+
+[tool.ruff.lint.pycodestyle]
+ignore-overlong-task-comments = true
+
+[tool.ruff.lint.mccabe]
+max-complexity = 11
+
+[tool.ruff.lint.isort]
+known-first-party = ["ariadne_graphql_proxy"]
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

@@ -51,6 +51,9 @@ aws = ["asgiref", "boto3"]
 include = ["ariadne_graphql_proxy/**/*.py", "ariadne_graphql_proxy/py.typed"]
 exclude = ["tests"]
 
+[tool.hatch.version]
+path = "ariadne_codegen/__about__.py"
+
 [tool.hatch.envs.default]
 features = ["dev", "types"]
 
@@ -64,10 +67,11 @@ check = [
 
 ## Types environment
 
+[tool.hatch.envs.types]
+features = ["types"]
+
 [tool.hatch.envs.types.scripts]
-check = [
-  "mypy ariadne_graphql_proxy",
-]
+check = ["mypy ariadne_graphql_proxy"]
 
 ## Test environments
 

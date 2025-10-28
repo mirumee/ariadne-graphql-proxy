@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Union, cast
+from typing import Any, Callable, Dict, List, cast
 
 from graphql import (
     DocumentNode,
@@ -13,9 +13,8 @@ from graphql import (
     print_ast,
 )
 
-from .proxy_resolver import ProxyResolver
 from .cache import CacheBackend
-
+from .proxy_resolver import ProxyResolver
 
 FIELDS_PLACEHOLDER = "__FIELDS"
 
@@ -24,17 +23,17 @@ class ForeignKeyResolver(ProxyResolver):
     _template: OperationDefinitionNode
     _operation_name: str
     _path: List[str]
-    _variables: Optional[Dict[str, str]]
+    _variables: Dict[str, str] | None
 
     def __init__(
         self,
         url: str,
         template: str,
-        variables: Optional[Dict[str, str]] = None,
-        proxy_headers: Union[bool, Callable, List[str]] = True,
-        cache: Optional[CacheBackend] = None,
-        cache_key: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
-        cache_ttl: Optional[int] = None,
+        variables: Dict[str, str] | None = None,
+        proxy_headers: bool | Callable | List[str] = True,
+        cache: CacheBackend | None = None,
+        cache_key: str | Callable[[GraphQLResolveInfo], str] | None = None,
+        cache_ttl: int | None = None,
     ):
         parsed_template = parse(template)
 
@@ -78,7 +77,7 @@ class ForeignKeyResolver(ProxyResolver):
 
         return await self.proxy_query(data, info, payload)
 
-    def get_field_data(self, info: GraphQLResolveInfo, data: dict) -> Optional[Any]:
+    def get_field_data(self, info: GraphQLResolveInfo, data: dict) -> Any | None:
         for field_name in self._path:
             if field_name in data:
                 data = data[field_name]

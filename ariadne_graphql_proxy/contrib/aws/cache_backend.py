@@ -1,5 +1,5 @@
 import time
-from typing import Any, Optional
+from typing import Any
 
 from ariadne_graphql_proxy.cache import (
     CacheBackend,
@@ -8,9 +8,9 @@ from ariadne_graphql_proxy.cache import (
 )
 
 try:
-    from asgiref.sync import sync_to_async
-    from boto3.dynamodb.conditions import Attr, Key
-    from boto3.session import Session
+    from asgiref.sync import sync_to_async  # type: ignore
+    from boto3.dynamodb.conditions import Attr, Key  # type: ignore
+    from boto3.session import Session  # type: ignore
 except ImportError as import_exc:
     raise ImportError(
         "DynamoDBCacheBackend requires 'boto3' and 'asgiref' packages."
@@ -27,8 +27,8 @@ class DynamoDBCacheBackend(CacheBackend):
         table_name: str,
         partition_key: str = "key",
         ttl_attribute: str = "ttl",
-        session: Optional[Session] = None,
-        serializer: Optional[CacheSerializer] = None,
+        session: Session | None = None,
+        serializer: CacheSerializer | None = None,
     ) -> None:
         super().__init__(serializer or JSONCacheSerializer())
 
@@ -66,7 +66,7 @@ class DynamoDBCacheBackend(CacheBackend):
             | Attr(self.ttl_attribute).not_exists(),
         )
 
-    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
+    async def set(self, key: str, value: Any, ttl: int | None = None):
         item: dict[str, Any] = {
             self.partition_key: key,
             self.value_attribute_name: self.serializer.serialize(value),

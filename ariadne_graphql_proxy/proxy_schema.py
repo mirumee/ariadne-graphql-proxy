@@ -1,7 +1,7 @@
 from asyncio import gather
 from functools import reduce
 from inspect import isawaitable
-from typing import Any, Callable, Dict, List, Optional, Set, Type, Union
+from typing import Any, Callable, Dict, List, Set, Type
 
 from ariadne.types import BaseProxyRootValue, RootValue
 from graphql import (
@@ -31,19 +31,18 @@ from .str_to_field import (
     get_graphql_field_from_field_definition,
 )
 
-
-ProxyHeaders = Union[dict, Callable[[Any], dict]]
+ProxyHeaders = dict | Callable[[Any], dict]
 
 
 class ProxySchema:
     def __init__(
         self,
-        root_value: Optional[RootValue] = None,
+        root_value: RootValue | None = None,
         proxy_root_value: Type[ProxyRootValue] = ProxyRootValue,
     ):
         self.schemas: List[GraphQLSchema] = []
-        self.urls: List[Optional[str]] = []
-        self.headers: List[Optional[ProxyHeaders]] = []
+        self.urls: List[str | None] = []
+        self.headers: List[ProxyHeaders | None] = []
         self.proxy_errors: List[bool] = []
         self.proxy_extensions: List[bool] = []
         self.labels: List[str] = []
@@ -55,24 +54,24 @@ class ProxySchema:
 
         self.proxy_root_value = proxy_root_value
 
-        self.schema: Optional[GraphQLSchema] = None
-        self.query_filter: Optional[QueryFilter] = None
-        self.root_value: Optional[RootValue] = root_value
+        self.schema: GraphQLSchema | None = None
+        self.query_filter: QueryFilter | None = None
+        self.root_value: RootValue | None = root_value
 
     def add_remote_schema(
         self,
         url: str,
-        headers: Optional[ProxyHeaders] = None,
+        headers: ProxyHeaders | None = None,
         *,
-        queries: Optional[List[str]] = None,
-        mutations: Optional[List[str]] = None,
-        exclude_types: Optional[List[str]] = None,
-        exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
-        exclude_fields: Optional[Dict[str, List[str]]] = None,
-        exclude_directives: Optional[List[str]] = None,
-        exclude_directives_args: Optional[Dict[str, List[str]]] = None,
-        extra_fields: Optional[Dict[str, List[str]]] = None,
-        label: Optional[str] = None,
+        queries: List[str] | None = None,
+        mutations: List[str] | None = None,
+        exclude_types: List[str] | None = None,
+        exclude_args: Dict[str, Dict[str, List[str]]] | None = None,
+        exclude_fields: Dict[str, List[str]] | None = None,
+        exclude_directives: List[str] | None = None,
+        exclude_directives_args: Dict[str, List[str]] | None = None,
+        extra_fields: Dict[str, List[str]] | None = None,
+        label: str | None = None,
         proxy_errors: bool = True,
         proxy_extensions: bool = True,
     ) -> int:
@@ -100,21 +99,21 @@ class ProxySchema:
             proxy_extensions=proxy_extensions,
         )
 
-    def add_schema(
+    def add_schema(  # noqa: C901
         self,
         schema: GraphQLSchema,
-        url: Optional[str] = None,
-        headers: Optional[ProxyHeaders] = None,
+        url: str | None = None,
+        headers: ProxyHeaders | None = None,
         *,
-        queries: Optional[List[str]] = None,
-        mutations: Optional[List[str]] = None,
-        exclude_types: Optional[List[str]] = None,
-        exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
-        exclude_fields: Optional[Dict[str, List[str]]] = None,
-        exclude_directives: Optional[List[str]] = None,
-        exclude_directives_args: Optional[Dict[str, List[str]]] = None,
-        extra_fields: Optional[Dict[str, List[str]]] = None,
-        label: Optional[str] = None,
+        queries: List[str] | None = None,
+        mutations: List[str] | None = None,
+        exclude_types: List[str] | None = None,
+        exclude_args: Dict[str, Dict[str, List[str]]] | None = None,
+        exclude_fields: Dict[str, List[str]] | None = None,
+        exclude_directives: List[str] | None = None,
+        exclude_directives_args: Dict[str, List[str]] | None = None,
+        extra_fields: Dict[str, List[str]] | None = None,
+        label: str | None = None,
         proxy_errors: bool = True,
         proxy_extensions: bool = True,
     ) -> int:
@@ -158,7 +157,7 @@ class ProxySchema:
                     object_type.name for object_type in type_def.types
                 ]
 
-            if not isinstance(type_def, (GraphQLInterfaceType, GraphQLObjectType)):
+            if not isinstance(type_def, GraphQLInterfaceType | GraphQLObjectType):
                 continue
 
             if type_name not in self.fields_map:
@@ -183,9 +182,7 @@ class ProxySchema:
 
         return schema_id
 
-    def add_foreign_key(
-        self, type_name: str, field_name: str, on: Union[str, List[str]]
-    ):
+    def add_foreign_key(self, type_name: str, field_name: str, on: str | List[str]):
         if type_name not in self.foreign_keys:
             self.foreign_keys[type_name] = {}
 
@@ -198,8 +195,8 @@ class ProxySchema:
                 and field_name in schema_dependencies[type_name]
             ):
                 raise ValueError(
-                    f"Foreign key can't be created for {type_name}.{field_name} because "
-                    "field dependencies were previously defined for it."
+                    f"Foreign key can't be created for {type_name}.{field_name} because"
+                    " field dependencies were previously defined for it."
                 )
 
         self.foreign_keys[type_name][field_name] = [on] if isinstance(on, str) else on
@@ -288,7 +285,8 @@ class ProxySchema:
                 return
 
         raise ValueError(
-            f"Type '{type_name}' doesn't define the '{field_name}' field in any of schemas."
+            f"Type '{type_name}' doesn't define the '{field_name}' "
+            "field in any of schemas."
         )
 
     def add_delayed_fields(self, delayed_fields: Dict[str, List[str]]):
@@ -380,10 +378,10 @@ class ProxySchema:
     async def root_resolver(
         self,
         context_value: dict,
-        operation_name: Optional[str],
-        variables: Optional[dict],
+        operation_name: str | None,
+        variables: dict | None,
         document: DocumentNode,
-    ) -> Optional[Union[dict, BaseProxyRootValue]]:
+    ) -> dict | BaseProxyRootValue | None:
         if not self.query_filter:
             raise RuntimeError(
                 "'get_final_schema' needs to be called to build final schema "
@@ -400,7 +398,10 @@ class ProxySchema:
 
         if callable(self.root_value):
             root_value = self.root_value(
-                context_value, operation_name, variables, document  # type: ignore
+                context_value,
+                operation_name,  # type: ignore
+                variables,  # type: ignore
+                document,
             )
             if isawaitable(root_value):
                 root_value = await root_value

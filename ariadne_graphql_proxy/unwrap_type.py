@@ -1,8 +1,8 @@
 from typing import cast
 
 from graphql import (
-    GraphQLType,
     GraphQLNamedType,
+    GraphQLType,
     GraphQLWrappingType,
 )
 

@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set, Tuple, cast
+from typing import Dict, List, Set, Tuple, cast
 
 from graphql import (
     DocumentNode,
@@ -67,7 +67,7 @@ class QueryFilter:
         self,
         schema_id: int,
         document: DocumentNode,
-    ) -> Tuple[Optional[DocumentNode], Set[str]]:
+    ) -> Tuple[DocumentNode | None, Set[str]]:
         context = QueryFilterContext(schema_id)
         definitions = []
 
@@ -95,7 +95,7 @@ class QueryFilter:
         self,
         operation_node: OperationDefinitionNode,
         context: QueryFilterContext,
-    ) -> Optional[OperationDefinitionNode]:
+    ) -> OperationDefinitionNode | None:
         type_name = operation_node.operation.value.title()
         if type_name not in self.fields_map:
             return None
@@ -149,12 +149,12 @@ class QueryFilter:
             ),
         )
 
-    def filter_field_node(
+    def filter_field_node(  # noqa: C901
         self,
         field_node: FieldNode,
         schema_obj: str,
         context: QueryFilterContext,
-    ) -> Optional[FieldNode]:
+    ) -> FieldNode | None:
         self.update_context_variables(field_node, context)
         if not field_node.selection_set:
             return field_node
@@ -251,7 +251,7 @@ class QueryFilter:
         fragment_node: InlineFragmentNode,
         schema_obj: str,
         context: QueryFilterContext,
-    ) -> Optional[InlineFragmentNode]:
+    ) -> InlineFragmentNode | None:
         type_name = fragment_node.type_condition.name.value
         type_fields = self.fields_map[type_name]
 
@@ -359,7 +359,7 @@ class QueryFilter:
         fragment_node: FragmentSpreadNode,
         schema_obj: str,
         context: QueryFilterContext,
-    ) -> Optional[InlineFragmentNode]:
+    ) -> InlineFragmentNode | None:
         fragment_name = fragment_node.name.value
         fragment = context.fragments.get(fragment_name)
         if not fragment:
@@ -383,7 +383,7 @@ class QueryFilter:
         self,
         schema_id: int,
         type_name: str,
-    ) -> Optional[Dict[str, SelectionSetNode]]:
+    ) -> Dict[str, SelectionSetNode] | None:
         if schema_id in self.dependencies and type_name in self.dependencies[schema_id]:
             return self.dependencies[schema_id][type_name]
 

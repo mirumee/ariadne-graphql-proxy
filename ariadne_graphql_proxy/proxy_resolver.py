@@ -1,11 +1,11 @@
-from typing import Any, Callable, List, Optional, Union
+from typing import Any, Callable, List
 
 from graphql import GraphQLResolveInfo, OperationDefinitionNode, print_ast
 from httpx import AsyncClient
 
+from .cache import CacheBackend, get_operation_cache_key
 from .errors import raise_upstream_error
 from .narrow_graphql_query import narrow_graphql_query
-from .cache import CacheBackend, get_operation_cache_key
 
 
 class NoCache:
@@ -14,19 +14,19 @@ class NoCache:
 
 class ProxyResolver:
     _url: str
-    _proxy_headers: Optional[Union[bool, Callable, List[str]]]
+    _proxy_headers: bool | Callable | List[str] | None
 
-    _cache: Optional[CacheBackend]
-    _cache_key: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]]
-    _cache_ttl: Optional[int]
+    _cache: CacheBackend | None
+    _cache_key: str | Callable[[GraphQLResolveInfo], str] | None
+    _cache_ttl: int | None
 
     def __init__(
         self,
         url: str,
-        proxy_headers: Union[bool, Callable, List[str]] = False,
-        cache: Optional[CacheBackend] = None,
-        cache_key: Optional[Union[str, Callable[[GraphQLResolveInfo], str]]] = None,
-        cache_ttl: Optional[int] = None,
+        proxy_headers: bool | Callable | List[str] = False,
+        cache: CacheBackend | None = None,
+        cache_key: str | Callable[[GraphQLResolveInfo], str] | None = None,
+        cache_ttl: int | None = None,
     ):
         self._url = url
         self._proxy_headers = proxy_headers
@@ -71,7 +71,7 @@ class ProxyResolver:
                 "cache argument."
             )
 
-        cache_key_final: Optional[str] = None
+        cache_key_final: str | None = None
         if callable(self._cache_key):
             cache_key_final = self._cache_key(info)
         else:
@@ -130,7 +130,7 @@ class ProxyResolver:
 
             return self.get_field_data(info, response_json["data"])
 
-    def get_field_data(self, info: GraphQLResolveInfo, data: dict) -> Optional[Any]:
+    def get_field_data(self, info: GraphQLResolveInfo, data: dict) -> Any | None:
         for field_name in info.path.as_list():
             if field_name in data:
                 data = data[field_name]

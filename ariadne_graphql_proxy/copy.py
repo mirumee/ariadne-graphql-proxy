@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, List, Optional, Set, Tuple, Union, cast
+from typing import Dict, List, Set, Tuple, cast
 
 from graphql import (
     DirectiveNode,
@@ -28,7 +28,6 @@ from graphql import (
 from .standard_types import STANDARD_DIRECTIVES, STANDARD_TYPES
 from .unwrap_type import unwrap_graphql_type
 
-
 ROOTS_ARGS_NAMES = {
     "Query": "queries",
     "Mutation": "mutations",
@@ -39,14 +38,14 @@ ROOTS_ARGS_NAMES = {
 def copy_schema(
     schema: GraphQLSchema,
     *,
-    queries: Optional[List[str]] = None,
-    mutations: Optional[List[str]] = None,
-    subscriptions: Optional[List[str]] = None,
-    exclude_types: Optional[List[str]] = None,
-    exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
-    exclude_fields: Optional[Dict[str, List[str]]] = None,
-    exclude_directives: Optional[List[str]] = None,
-    exclude_directives_args: Optional[Dict[str, List[str]]] = None,
+    queries: List[str] | None = None,
+    mutations: List[str] | None = None,
+    subscriptions: List[str] | None = None,
+    exclude_types: List[str] | None = None,
+    exclude_args: Dict[str, Dict[str, List[str]]] | None = None,
+    exclude_fields: Dict[str, List[str]] | None = None,
+    exclude_directives: List[str] | None = None,
+    exclude_directives_args: Dict[str, List[str]] | None = None,
 ) -> GraphQLSchema:
     if queries or mutations or subscriptions:
         return copy_schema_with_subset(
@@ -97,7 +96,7 @@ def _copy_arg(arg, default):
     return deepcopy(arg) if arg else default
 
 
-def copy_schema_with_subset(
+def copy_schema_with_subset(  # noqa: C901
     schema: GraphQLSchema,
     *,
     queries: List[str],
@@ -184,11 +183,11 @@ def copy_schema_with_subset(
 def find_roots_dependencies(
     schema: GraphQLSchema,
     roots: Dict[str, List[str]],
-    exclude_types: Optional[List[str]] = None,
-    exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
-    exclude_fields: Optional[Dict[str, List[str]]] = None,
-    exclude_directives: Optional[List[str]] = None,
-    exclude_directives_args: Optional[Dict[str, List[str]]] = None,
+    exclude_types: List[str] | None = None,
+    exclude_args: Dict[str, Dict[str, List[str]]] | None = None,
+    exclude_fields: Dict[str, List[str]] | None = None,
+    exclude_directives: List[str] | None = None,
+    exclude_directives_args: Dict[str, List[str]] | None = None,
 ) -> List[str]:
     visitor = TypesDependenciesVisitor(
         schema,
@@ -206,11 +205,11 @@ class TypesDependenciesVisitor:
     def __init__(
         self,
         schema: GraphQLSchema,
-        exclude_types: Optional[List[str]] = None,
-        exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
-        exclude_fields: Optional[Dict[str, List[str]]] = None,
-        exclude_directives: Optional[List[str]] = None,
-        exclude_directives_args: Optional[Dict[str, List[str]]] = None,
+        exclude_types: List[str] | None = None,
+        exclude_args: Dict[str, Dict[str, List[str]]] | None = None,
+        exclude_fields: Dict[str, List[str]] | None = None,
+        exclude_directives: List[str] | None = None,
+        exclude_directives_args: Dict[str, List[str]] | None = None,
     ):
         self.schema = schema
         self.directives = {d.name: d for d in schema.directives}
@@ -250,7 +249,7 @@ class TypesDependenciesVisitor:
             and arg_name in self.exclude_directives_args[type_name]
         )
 
-    def get_dependencies(self, roots: Dict[str, List[str]]) -> List[str]:
+    def get_dependencies(self, roots: Dict[str, List[str]]) -> List[str]:  # noqa: C901
         dependencies: Set[str] = set("Query")
 
         for root, fields in roots.items():
@@ -325,7 +324,7 @@ class TypesDependenciesVisitor:
     def find_type_dependencies(
         self,
         dependencies: Set[str],
-        type_def: Union[GraphQLNamedType, GraphQLDirective],
+        type_def: GraphQLNamedType | GraphQLDirective,
     ):
         if type_def.name in dependencies:
             return
@@ -345,7 +344,7 @@ class TypesDependenciesVisitor:
         if isinstance(type_def, GraphQLInputObjectType):
             self.find_input_type_dependencies(dependencies, type_def)
 
-        if isinstance(type_def, (GraphQLObjectType, GraphQLInterfaceType)):
+        if isinstance(type_def, GraphQLObjectType | GraphQLInterfaceType):
             self.find_object_type_dependencies(dependencies, type_def)
 
         if isinstance(type_def, GraphQLScalarType):
@@ -408,7 +407,7 @@ class TypesDependenciesVisitor:
     def find_object_type_dependencies(
         self,
         dependencies: Set[str],
-        type_def: Union[GraphQLObjectType, GraphQLInterfaceType],
+        type_def: GraphQLObjectType | GraphQLInterfaceType,
     ):
         if type_def.ast_node:
             self.find_ast_directives_dependencies(
@@ -426,7 +425,7 @@ class TypesDependenciesVisitor:
     def find_object_type_field_dependencies(
         self,
         dependencies: Set[str],
-        type_def: Union[GraphQLObjectType, GraphQLInterfaceType],
+        type_def: GraphQLObjectType | GraphQLInterfaceType,
         field_name: str,
         field_def: GraphQLField,
     ):
@@ -475,9 +474,9 @@ class TypesDependenciesVisitor:
 
 def copy_schema_types(
     schema: GraphQLSchema,
-    exclude_types: Optional[List[str]] = None,
-    exclude_args: Optional[Dict[str, Dict[str, List[str]]]] = None,
-    exclude_fields: Optional[Dict[str, List[str]]] = None,
+    exclude_types: List[str] | None = None,
+    exclude_args: Dict[str, Dict[str, List[str]]] | None = None,
+    exclude_fields: Dict[str, List[str]] | None = None,
 ):
     exclude_types = exclude_types if exclude_types else []
     exclude_args = exclude_args if exclude_args else {}
@@ -504,9 +503,9 @@ def copy_schema_types(
 def copy_schema_type(
     new_types,
     graphql_type,
-    exclude_types: Optional[List[str]] = None,
-    object_exclude_fields: Optional[List[str]] = None,
-    object_exclude_args: Optional[Dict[str, List[str]]] = None,
+    exclude_types: List[str] | None = None,
+    object_exclude_fields: List[str] | None = None,
+    object_exclude_args: Dict[str, List[str]] | None = None,
 ):
     if isinstance(graphql_type, GraphQLEnumType):
         return copy_enum(
@@ -546,7 +545,7 @@ def copy_schema_type(
     raise TypeError(f"Can't copy unknown type '{repr(graphql_type)}'.")
 
 
-def copy_enum(graphql_type, object_exclude_fields: Optional[List[str]] = None):
+def copy_enum(graphql_type, object_exclude_fields: List[str] | None = None):
     object_exclude_fields = object_exclude_fields if object_exclude_fields else []
     values = {
         name: val
@@ -564,8 +563,8 @@ def copy_enum(graphql_type, object_exclude_fields: Optional[List[str]] = None):
 def copy_object(
     new_types,
     graphql_type,
-    object_exclude_fields: Optional[List[str]] = None,
-    object_exclude_args: Optional[Dict[str, List[str]]] = None,
+    object_exclude_fields: List[str] | None = None,
+    object_exclude_args: Dict[str, List[str]] | None = None,
 ):
     def fields_thunk():
         fields_to_exclude = object_exclude_fields if object_exclude_fields else []
@@ -586,9 +585,7 @@ def copy_object(
     )
 
 
-def copy_field(
-    new_types, graphql_field, field_exclude_args: Optional[List[str]] = None
-):
+def copy_field(new_types, graphql_field, field_exclude_args: List[str] | None = None):
     return GraphQLField(
         copy_field_type(new_types, graphql_field.type),
         copy_arguments(new_types, graphql_field.args, field_exclude_args),
@@ -620,22 +617,18 @@ def copy_field_type(new_types, field_type):
 
     if isinstance(
         field_type,
-        (
-            GraphQLEnumType,
-            GraphQLObjectType,
-            GraphQLInterfaceType,
-            GraphQLScalarType,
-            GraphQLUnionType,
-        ),
+        GraphQLEnumType
+        | GraphQLObjectType
+        | GraphQLInterfaceType
+        | GraphQLScalarType
+        | GraphQLUnionType,
     ):
         return new_types[field_type.name]
 
     raise TypeError(f"Can't copy field of unknown type: '{repr(field_type)}'.")
 
 
-def copy_arguments(
-    new_types, field_args, field_exclude_args: Optional[List[str]] = None
-):
+def copy_arguments(new_types, field_args, field_exclude_args: List[str] | None = None):
     if field_args == {}:
         return {}
 
@@ -675,15 +668,13 @@ def copy_argument_type(new_types, arg):
     if arg == GraphQLInt:
         return GraphQLInt
 
-    if isinstance(arg, (GraphQLEnumType, GraphQLInputObjectType, GraphQLScalarType)):
+    if isinstance(arg, GraphQLEnumType | GraphQLInputObjectType | GraphQLScalarType):
         return new_types[arg.name]
 
     raise TypeError(f"Can't copy argument of unknown type '{repr(arg)}'.")
 
 
-def copy_input(
-    new_types, graphql_type, object_exclude_fields: Optional[List[str]] = None
-):
+def copy_input(new_types, graphql_type, object_exclude_fields: List[str] | None = None):
     def thunk():
         fields_to_exclude = object_exclude_fields if object_exclude_fields else []
         return {
@@ -749,8 +740,8 @@ def copy_scalar(scalar):
 def copy_interface(
     new_types: dict,
     interface_type: GraphQLInterfaceType,
-    object_exclude_fields: Optional[List[str]] = None,
-    object_exclude_args: Optional[Dict[str, List[str]]] = None,
+    object_exclude_fields: List[str] | None = None,
+    object_exclude_args: Dict[str, List[str]] | None = None,
 ) -> GraphQLInterfaceType:
     def fields_thunk():
         fields_to_exclude = object_exclude_fields if object_exclude_fields else []
@@ -774,7 +765,7 @@ def copy_interface(
 def copy_union(
     new_types: dict,
     union_type: GraphQLUnionType,
-    exclude_types: Optional[List[str]] = None,
+    exclude_types: List[str] | None = None,
 ) -> GraphQLUnionType:
     def thunk():
         types_to_exclude = exclude_types if exclude_types else []
@@ -790,8 +781,8 @@ def copy_union(
 def copy_directives(
     new_types: dict,
     directives: Tuple[GraphQLDirective, ...],
-    exclude_directives: Optional[List[str]] = None,
-    exclude_directives_args: Optional[Dict[str, List[str]]] = None,
+    exclude_directives: List[str] | None = None,
+    exclude_directives_args: Dict[str, List[str]] | None = None,
 ) -> Tuple[GraphQLDirective, ...]:
     exclude_directives = exclude_directives if exclude_directives else []
     exclude_directives_args = exclude_directives_args if exclude_directives_args else {}
@@ -809,7 +800,7 @@ def copy_directives(
 def copy_directive(
     new_types: dict,
     directive: GraphQLDirective,
-    directive_exclude_args: Optional[List[str]] = None,
+    directive_exclude_args: List[str] | None = None,
 ) -> GraphQLDirective:
     return GraphQLDirective(
         name=directive.name,

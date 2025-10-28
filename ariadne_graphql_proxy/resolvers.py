@@ -1,13 +1,11 @@
-from typing import Optional
-
-from graphql import GraphQLFieldResolver, GraphQLSchema, GraphQLObjectType
+from graphql import GraphQLFieldResolver, GraphQLObjectType, GraphQLSchema
 
 
 def set_resolver(
     schema: GraphQLSchema,
     type_name: str,
     field_name: str,
-    resolver: Optional[GraphQLFieldResolver],
+    resolver: GraphQLFieldResolver | None,
 ):
     graphql_type = schema.type_map.get(type_name)
     if not graphql_type:

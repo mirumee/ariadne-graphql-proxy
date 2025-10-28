@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from graphql import (
     DocumentNode,
@@ -7,9 +7,9 @@ from graphql import (
 )
 
 
-def get_operation(
+def get_operation(  # noqa: C901
     document: DocumentNode,
-    operation_name: Optional[str] = None,
+    operation_name: str | None = None,
 ) -> OperationDefinitionNode:
     operations: List[OperationDefinitionNode] = []
     anonymous_operations = 0

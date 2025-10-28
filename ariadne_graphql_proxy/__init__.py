@@ -1,8 +1,8 @@
 from .context_value import get_context_value
 from .copy import (
     copy_argument,
-    copy_arguments,
     copy_argument_type,
+    copy_arguments,
     copy_directive,
     copy_directives,
     copy_enum,
@@ -27,8 +27,8 @@ from .merge import (
     merge_enums,
     merge_enums_values,
     merge_fields,
-    merge_inputs,
     merge_input_fields,
+    merge_inputs,
     merge_interfaces,
     merge_objects,
     merge_scalars,

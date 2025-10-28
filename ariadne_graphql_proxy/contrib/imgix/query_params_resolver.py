@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable, Optional, Union, cast
+from typing import Any, Callable, cast
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from graphql import GraphQLResolveInfo
@@ -18,10 +18,10 @@ def get_attribute_value(
 
 
 def get_query_params_resolver(
-    get_url: Union[str, Callable[..., str]],
-    extra_params: Optional[dict[str, Any]] = None,
-    get_params: Optional[Callable[..., dict[str, Any]]] = None,
-    serialize_url: Optional[Callable[[str], Any]] = None,
+    get_url: str | Callable[..., str],
+    extra_params: dict[str, Any] | None = None,
+    get_params: Callable[..., dict[str, Any]] | None = None,
+    serialize_url: Callable[[str], Any] | None = None,
 ):
     get_source_url = cast(
         Callable[..., str],

@@ -1,7 +1,7 @@
 from typing import Any
 
 try:
-    import orjson as json
+    import orjson as json  # type: ignore
 
     USING_ORJSON = True
 except ImportError:

@@ -52,7 +52,7 @@ include = ["ariadne_graphql_proxy/**/*.py", "ariadne_graphql_proxy/py.typed"]
 exclude = ["tests"]
 
 [tool.hatch.version]
-path = "ariadne_codegen/__about__.py"
+path = "ariadne_graphql_proxy/__about__.py"
 
 [tool.hatch.envs.default]
 features = ["dev", "types"]

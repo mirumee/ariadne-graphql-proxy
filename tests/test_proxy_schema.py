@@ -1940,6 +1940,6 @@ async def test_get_final_schema_adds_resolvers_only_to_object_types():
     for type_name, type_def in final_schema.type_map.items():
         if isinstance(type_def, GraphQLObjectType) and not type_name.startswith("__"):
             for field_name, field_def in type_def.fields.items():
-                assert (
-                    field_def.resolve is not None
-                ), f"Missing resolver for {type_name}.{field_name}"
+                assert field_def.resolve is not None, (
+                    f"Missing resolver for {type_name}.{field_name}"
+                )

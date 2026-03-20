@@ -7,8 +7,10 @@ name = "ariadne-graphql-proxy"
 description = "Ariadne toolkit for building GraphQL proxies."
 authors = [{ name = "Mirumee Software", email = "ariadne@mirumee.com" }]
 dynamic = ["version"]
+requires-python = ">= 3.10"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
@@ -22,23 +24,26 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-dependencies = ["graphql-core>=3.2.0,<3.3", "httpx", "ariadne>=0.23.0"]
+
+dependencies = [
+  "graphql-core>=3.2.7,<3.3",
+  "httpx~=0.28",
+  "ariadne>=1.0.0",
+]
 
 [project.optional-dependencies]
-dev = ["ipdb"]
+dev = ["ipdb", "ruff>=0.15.0,<0.16.0"]
 test = [
   "freezegun",
   "moto[dynamodb]",
   "pytest",
-  "pytest-mock",
-  "pytest-httpx",
   "pytest-asyncio",
-  "ruff",
+  "pytest-cov",
+  "pytest-httpx",
+  "pytest-mock",
 ]
-types = ["mypy>=1.0.0"]
-
+types = ["ty>=0.0.20,<0.1.0"]
 orjson = ["orjson"]
-
 aws = ["asgiref", "boto3"]
 
 [project.urls]
@@ -46,6 +51,8 @@ aws = ["asgiref", "boto3"]
 "Repository" = "https://github.com/mirumee/ariadne-graphql-proxy"
 "Bug Tracker" = "https://github.com/mirumee/ariadne-graphql-proxy/issues"
 "Community" = "https://github.com/mirumee/ariadne/discussions"
+
+# Hatch configuration
 
 [tool.hatch.build]
 include = ["ariadne_graphql_proxy/**/*.py", "ariadne_graphql_proxy/py.typed"]
@@ -55,23 +62,29 @@ exclude = ["tests"]
 path = "ariadne_graphql_proxy/__about__.py"
 
 [tool.hatch.envs.default]
-features = ["dev", "types"]
+python = "3.10"
+features = ["dev", "types", "test", "orjson", "aws"]
+path = ".venv"
 
 [tool.hatch.envs.default.scripts]
+lint = ["hatch fmt --check", "hatch run types:check"]
 check = [
   "hatch fmt",
-  "hatch test -a -p",
   "hatch test --cover",
   "hatch run types:check",
 ]
+changelog-preview = "git cliff --unreleased --strip all"
+changelog-update = "git cliff --unreleased -o CHANGELOG.md"
+release-notes = "git cliff --latest --strip all"
 
 ## Types environment
 
-[tool.hatch.envs.types]
-features = ["types", "test", "orjson", "aws"]
-
 [tool.hatch.envs.types.scripts]
-check = ["mypy ariadne_graphql_proxy"]
+check = ["ty check"]
+
+[tool.hatch.envs.hatch-static-analysis]
+config-path = "none"
+dependencies = ["ruff>=0.15.0,<0.16.0"]
 
 ## Test environments
 
@@ -82,6 +95,55 @@ extra-args = []
 [[tool.hatch.envs.hatch-test.matrix]]
 python = ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
+## Type checker (ty) configuration
+
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.src]
+include = ["ariadne_graphql_proxy", "tests"]
+
+[tool.ty.rules]
+unused-type-ignore-comment = "ignore"
+redundant-cast = "ignore"
+# graphql-core / dynamic patterns; tighten over time
+call-top-callable = "ignore"
+invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
+unresolved-attribute = "ignore"
+
+[[tool.ty.overrides]]
+include = ["tests/**"]
+[tool.ty.overrides.rules]
+missing-argument = "ignore"
+no-matching-overload = "ignore"
+unresolved-attribute = "ignore"
+invalid-argument-type = "ignore"
+unknown-argument = "ignore"
+not-iterable = "ignore"
+possibly-missing-attribute = "ignore"
+
+## Coverage configuration
+
+[tool.coverage.run]
+source = ["ariadne_graphql_proxy", "tests"]
+
+[tool.coverage.report]
+exclude_also = [
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
+]
+omit = ["*/__about__.py", "*/__main__.py", "*/cli/__init__.py"]
+fail_under = 90
+
 ## Ruff configuration
 
 [tool.ruff]
@@ -91,7 +153,6 @@ target-version = "py310"
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = 99
-exclude = ["tests/main/clients/*/expected_client/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "G", "I", "N", "Q", "UP", "C90", "T20", "TID"]
@@ -110,6 +171,8 @@ known-first-party = ["ariadne_graphql_proxy"]
 [tool.ruff.lint.flake8-pytest-style]
 fixture-parentheses = false
 mark-parentheses = false
+
+# Pytest configuration
 
 [tool.pytest.ini_options]
 asyncio_mode = "strict"

@@ -1,7 +1,7 @@
 from starlette.requests import Request
 
 
-def get_context_value(request: Request) -> dict:
+def get_context_value(request: Request, _data: object = None) -> dict:
     return {
         "request": request,
         "headers": {k.lower(): v for k, v in request.headers.items()},

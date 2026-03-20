@@ -33,6 +33,17 @@ from .str_to_field import (
 
 ProxyHeaders = dict | Callable[[Any], dict]
 
+INTROSPECTION_TYPE_NAMES = {
+    "__Schema",
+    "__Type",
+    "__TypeKind",
+    "__Field",
+    "__InputValue",
+    "__EnumValue",
+    "__Directive",
+    "__DirectiveLocation",
+}
+
 
 class ProxySchema:
     def __init__(
@@ -232,8 +243,8 @@ class ProxySchema:
         schema_type = schema.type_map[type_name]
         if not isinstance(schema_type, GraphQLObjectType):
             raise ValueError(
-                f"Type '{type_name}' in schema with ID '{schema_id}' is not "
-                "an object type."
+                f"Type '{type_name}' in schema with ID '{schema_id}' "
+                "is not an object type."
             )
 
         self.validate_field_with_dependencies(type_name, field_name)
@@ -320,6 +331,9 @@ class ProxySchema:
 
         for type_name, type_def in self.schema.type_map.items():
             if not isinstance(type_def, GraphQLObjectType):
+                continue
+            if type_name in INTROSPECTION_TYPE_NAMES:
+                # Keep built-in introspection resolvers untouched.
                 continue
 
             if type_name not in self.fields_types:

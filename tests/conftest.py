@@ -293,6 +293,32 @@ def search_schema_json(search_schema):
 
 
 @pytest.fixture
+def interface_entry_schema():
+    return make_executable_schema(
+        """
+        type Query {
+            entry: Result!
+        }
+
+        interface Result {
+            id: ID!
+        }
+
+        type Thing implements Result {
+            id: ID!
+            title: String!
+        }
+        """
+    )
+
+
+@pytest.fixture
+def interface_entry_schema_json(interface_entry_schema):
+    schema_data = graphql_sync(interface_entry_schema, get_introspection_query()).data
+    return {"data": schema_data}
+
+
+@pytest.fixture
 def search_root_value():
     return {
         "search": [

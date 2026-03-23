@@ -30,3 +30,22 @@ def test_copy_union_returns_copy_of_union_with_copies_of_subtypes():
     assert isinstance(copied_union_type, GraphQLUnionType)
     assert copied_union_type is not union_type
     assert copied_union_type.types == (duplicated_subtype1, duplicated_subtype2)
+
+
+def test_copy_union_preserves_resolve_type():
+    def resolve_type(*_):
+        return "TypeA"
+
+    subtype = GraphQLObjectType(
+        name="TypeA", fields={"valA": GraphQLField(type_=GraphQLString)}
+    )
+    duplicated_subtype = GraphQLObjectType(
+        name="TypeA", fields={"valA": GraphQLField(type_=GraphQLString)}
+    )
+    union_type = GraphQLUnionType(
+        name="UnionType", types=[subtype], resolve_type=resolve_type
+    )
+
+    copied_union_type = copy_union({"TypeA": duplicated_subtype}, union_type)
+
+    assert copied_union_type.resolve_type is resolve_type

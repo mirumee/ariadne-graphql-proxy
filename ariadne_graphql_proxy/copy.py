@@ -582,6 +582,11 @@ def copy_object(
         name=graphql_type.name,
         fields=fields_thunk,
         interfaces=interfaces_thunk,
+        is_type_of=graphql_type.is_type_of,
+        description=graphql_type.description,
+        extensions=graphql_type.extensions,
+        ast_node=graphql_type.ast_node,
+        extension_ast_nodes=graphql_type.extension_ast_nodes,
     )
 
 
@@ -759,6 +764,11 @@ def copy_interface(
         name=interface_type.name,
         fields=fields_thunk,
         interfaces=interfaces_thunk,
+        resolve_type=interface_type.resolve_type,
+        description=interface_type.description,
+        extensions=interface_type.extensions,
+        ast_node=interface_type.ast_node,
+        extension_ast_nodes=interface_type.extension_ast_nodes,
     )
 
 
@@ -775,7 +785,15 @@ def copy_union(
             if subtype.name not in types_to_exclude
         )
 
-    return GraphQLUnionType(name=union_type.name, types=thunk)
+    return GraphQLUnionType(
+        name=union_type.name,
+        types=thunk,
+        resolve_type=union_type.resolve_type,
+        description=union_type.description,
+        extensions=union_type.extensions,
+        ast_node=union_type.ast_node,
+        extension_ast_nodes=union_type.extension_ast_nodes,
+    )
 
 
 def copy_directives(

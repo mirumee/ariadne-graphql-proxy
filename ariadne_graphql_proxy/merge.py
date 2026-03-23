@@ -244,11 +244,28 @@ def merge_objects(
         }
         return [merged_types[name] for name in interfaces_names]
 
+    if (
+        object1.is_type_of
+        and object2.is_type_of
+        and object1.is_type_of != object2.is_type_of
+    ):
+        raise TypeError(
+            f"{object1.name} is_type_of functions don't match: "
+            f"{repr(object1.is_type_of)} != {repr(object2.is_type_of)}"
+        )
+
+    extensions = object1.extensions.copy()
+    extensions.update(**object2.extensions.copy())
+
     return GraphQLObjectType(
         name=object1.name,
         fields=fields_thunk,
         interfaces=interfaces_thunk,
+        is_type_of=object1.is_type_of or object2.is_type_of,
         description=object1.description or object2.description,
+        extensions=extensions,
+        ast_node=object1.ast_node or object2.ast_node,
+        extension_ast_nodes=object1.extension_ast_nodes or object2.extension_ast_nodes,
     )
 
 
@@ -583,11 +600,30 @@ def merge_interfaces(
         }
         return [merged_types[name] for name in interfaces_names]
 
+    if (
+        interface1.resolve_type
+        and interface2.resolve_type
+        and interface1.resolve_type != interface2.resolve_type
+    ):
+        raise TypeError(
+            f"{interface1.name} resolve_type functions don't match: "
+            f"{repr(interface1.resolve_type)} != {repr(interface2.resolve_type)}"
+        )
+
+    extensions = interface1.extensions.copy()
+    extensions.update(**interface2.extensions.copy())
+
     return GraphQLInterfaceType(
         name=interface1.name,
         fields=fields_thunk,
         interfaces=interfaces_thunk,
+        resolve_type=interface1.resolve_type or interface2.resolve_type,
         description=interface1.description or interface2.description,
+        extensions=extensions,
+        ast_node=interface1.ast_node or interface2.ast_node,
+        extension_ast_nodes=(
+            interface1.extension_ast_nodes or interface2.extension_ast_nodes
+        ),
     )
 
 
@@ -608,8 +644,25 @@ def merge_unions(
         names = {t.name for t in chain(union1.types, union2.types)}
         return tuple(merged_types[subtype_name] for subtype_name in names)
 
+    if (
+        union1.resolve_type
+        and union2.resolve_type
+        and union1.resolve_type != union2.resolve_type
+    ):
+        raise TypeError(
+            f"{union1.name} resolve_type functions don't match: "
+            f"{repr(union1.resolve_type)} != {repr(union2.resolve_type)}"
+        )
+
+    extensions = union1.extensions.copy()
+    extensions.update(**union2.extensions.copy())
+
     return GraphQLUnionType(
         name=union1.name,
         types=thunk,
+        resolve_type=union1.resolve_type or union2.resolve_type,
         description=union1.description or union2.description,
+        extensions=extensions,
+        ast_node=union1.ast_node or union2.ast_node,
+        extension_ast_nodes=union1.extension_ast_nodes or union2.extension_ast_nodes,
     )

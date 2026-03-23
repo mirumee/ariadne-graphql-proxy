@@ -18,6 +18,14 @@ from graphql import (
 
 from .selections import merge_selections
 
+# Present in every GraphQL response when requested, but not listed on types in
+# introspection `fields` — without an explicit allow-list, query splitting drops
+# them and abstract types cannot be resolved at execution time.
+_COMPOSITE_META_FIELDS = frozenset({"__typename"})
+
+# Valid only on the root Query type; same introspection gap as __typename.
+_ROOT_QUERY_INTROSPECTION_FIELDS = frozenset({"__schema", "__type"})
+
 
 class QueryFilterContext:
     schema_id: int
@@ -48,6 +56,23 @@ class QueryFilter:
         self.unions = unions
         self.foreign_keys = foreign_keys
         self.dependencies = dependencies
+
+    def _field_passes_type_filter(
+        self,
+        field_name: str,
+        type_fields: Dict[str, Set[int]],
+        schema_id: int,
+        *,
+        root_graphql_type: str | None = None,
+    ) -> bool:
+        if field_name in _COMPOSITE_META_FIELDS:
+            return True
+        if (
+            root_graphql_type == "Query"
+            and field_name in _ROOT_QUERY_INTROSPECTION_FIELDS
+        ):
+            return True
+        return field_name in type_fields and schema_id in type_fields[field_name]
 
     def split_query(
         self, document: DocumentNode
@@ -101,13 +126,16 @@ class QueryFilter:
             return None
 
         type_fields = self.fields_map[type_name]
+        self.update_context_variables(operation_node, context)
         new_selections: List[SelectionNode] = []
 
         for selection in operation_node.selection_set.selections:
             if isinstance(selection, FieldNode):
-                if (
-                    selection.name.value not in type_fields
-                    or context.schema_id not in type_fields[selection.name.value]
+                if not self._field_passes_type_filter(
+                    selection.name.value,
+                    type_fields,
+                    context.schema_id,
+                    root_graphql_type=type_name,
                 ):
                     continue
 
@@ -182,6 +210,9 @@ class QueryFilter:
                 selection_set=SelectionSetNode(selections=foreign_key),
             )
 
+        if schema_obj == "Query" and field_name in _ROOT_QUERY_INTROSPECTION_FIELDS:
+            return field_node
+
         type_name = self.fields_types[schema_obj][field_name]
         type_is_union = type_name in self.unions
 
@@ -203,9 +234,8 @@ class QueryFilter:
                         new_selections, fields_dependencies[field_name].selections
                     )
 
-                if (
-                    field_name not in type_fields
-                    or context.schema_id not in type_fields[field_name]
+                if not self._field_passes_type_filter(
+                    field_name, type_fields, context.schema_id
                 ):
                     continue
 
@@ -252,6 +282,7 @@ class QueryFilter:
         schema_obj: str,
         context: QueryFilterContext,
     ) -> InlineFragmentNode | None:
+        self.update_context_variables(fragment_node, context)
         type_name = fragment_node.type_condition.name.value
         type_fields = self.fields_map[type_name]
 
@@ -268,9 +299,8 @@ class QueryFilter:
                         new_selections, fields_dependencies[field_name].selections
                     )
 
-                if (
-                    field_name not in type_fields
-                    or context.schema_id not in type_fields[field_name]
+                if not self._field_passes_type_filter(
+                    field_name, type_fields, context.schema_id
                 ):
                     continue
 
@@ -306,6 +336,7 @@ class QueryFilter:
         schema_obj: str,
         context: QueryFilterContext,
     ) -> List[SelectionNode]:
+        self.update_context_variables(fragment_node, context)
         fragment_name = fragment_node.name.value
         fragment = context.fragments.get(fragment_name)
 
@@ -328,9 +359,8 @@ class QueryFilter:
                         new_selections, fields_dependencies[field_name].selections
                     )
 
-                if (
-                    field_name not in type_fields
-                    or context.schema_id not in type_fields[field_name]
+                if not self._field_passes_type_filter(
+                    field_name, type_fields, context.schema_id
                 ):
                     continue
 
@@ -389,11 +419,12 @@ class QueryFilter:
 
         return None
 
-    def update_context_variables(
-        self, field_node: FieldNode, context: QueryFilterContext
-    ):
-        for argument in field_node.arguments:
+    def update_context_variables(self, node, context: QueryFilterContext):
+        for argument in getattr(node, "arguments", ()) or ():
             self.extract_variables(argument.value, context)  # type: ignore
+        for directive in getattr(node, "directives", ()) or ():
+            for argument in directive.arguments:
+                self.extract_variables(argument.value, context)  # type: ignore
 
     def extract_variables(
         self,

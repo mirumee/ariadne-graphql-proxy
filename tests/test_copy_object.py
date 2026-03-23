@@ -97,3 +97,18 @@ def test_copy_object_returns_new_object_without_excluded_argument():
     assert isinstance(copied_type, GraphQLObjectType)
     assert copied_type is not graphql_type
     assert "arg1" not in copied_type.fields["fieldA"].args
+
+
+def test_copy_object_preserves_is_type_of():
+    def is_type_of(*_):
+        return True
+
+    graphql_type = GraphQLObjectType(
+        name="TypeName",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+        is_type_of=is_type_of,
+    )
+
+    copied_type = copy_object({}, graphql_type)
+
+    assert copied_type.is_type_of is is_type_of

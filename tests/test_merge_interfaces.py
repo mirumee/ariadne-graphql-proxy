@@ -157,3 +157,26 @@ def test_merge_interfaces_raises_type_error_for_not_matching_descriptions():
             interface1=interface1,
             interface2=interface2,
         )
+
+
+def test_merge_interfaces_preserves_resolve_type():
+    def resolve_type(*_):
+        return "TestType"
+
+    interface1 = GraphQLInterfaceType(
+        name="TestInterface",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+        resolve_type=resolve_type,
+    )
+    interface2 = GraphQLInterfaceType(
+        name="TestInterface",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+    )
+
+    merged_interface = merge_interfaces(
+        merged_types={},
+        interface1=interface1,
+        interface2=interface2,
+    )
+
+    assert merged_interface.resolve_type is resolve_type

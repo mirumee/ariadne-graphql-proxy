@@ -220,6 +220,173 @@ async def test_custom_root_value_async_callable_supported(schema):
 
 
 @pytest.mark.asyncio
+async def test_split_query_preserves_typename_under_interface(
+    httpx_mock, interface_entry_schema_json
+):
+    """__typename is not in introspection `fields`; it must not be stripped."""
+    httpx_mock.add_response(json=interface_entry_schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "entry": {
+                    "__typename": "Thing",
+                    "id": "1",
+                },
+            },
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+    await proxy_schema.root_resolver(
+        {},
+        "Query",
+        None,
+        parse(
+            """
+            query Q {
+              entry {
+                __typename
+                id
+              }
+            }
+            """
+        ),
+    )
+
+    upstream = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    payload = json.loads(upstream.content.decode())
+    assert "__typename" in payload["query"]
+
+
+@pytest.mark.asyncio
+async def test_split_query_preserves_root_introspection_fields(httpx_mock, schema_json):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "__schema": {"queryType": {"name": "Query"}},
+                "__type": {"name": "Complex"},
+            }
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "Introspection",
+        {"typeName": "Complex"},
+        parse(
+            """
+            query Introspection($typeName: String!) {
+              __schema {
+                queryType {
+                  name
+                }
+              }
+              __type(name: $typeName) {
+                name
+              }
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "__schema": {"queryType": {"name": "Query"}},
+        "__type": {"name": "Complex"},
+    }
+
+    upstream = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    payload = json.loads(upstream.content.decode())
+    assert "__schema" in payload["query"]
+    assert "__type" in payload["query"]
+    assert payload["variables"] == {"typeName": "Complex"}
+
+
+@pytest.mark.asyncio
+async def test_split_query_keeps_directives_and_directive_variables(
+    httpx_mock, schema_json
+):
+    httpx_mock.add_response(json=schema_json)
+    httpx_mock.add_response(
+        json={
+            "data": {
+                "basic": "Lorem Ipsum",
+                "complex": {"id": "123", "name": "Test"},
+            }
+        }
+    )
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/")
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "QueryWithDirectives",
+        {"withBasic": True, "skipId": False},
+        parse(
+            """
+            query QueryWithDirectives($withBasic: Boolean!, $skipId: Boolean!) {
+              basic @include(if: $withBasic)
+              complex {
+                id @skip(if: $skipId)
+                name
+              }
+            }
+            """
+        ),
+    )
+
+    assert root_value == {
+        "basic": "Lorem Ipsum",
+        "complex": {"id": "123", "name": "Test"},
+    }
+
+    upstream = httpx_mock.get_requests(url="http://graphql.example.com/")[-1]
+    payload = json.loads(upstream.content.decode())
+    assert "@include" in payload["query"]
+    assert "@skip" in payload["query"]
+    assert "$withBasic" in payload["query"]
+    assert "$skipId" in payload["query"]
+    assert payload["variables"] == {"withBasic": True, "skipId": False}
+
+
+@pytest.mark.asyncio
+async def test_proxy_schema_forwards_mutation_with_variables(
+    httpx_mock, store_schema_json
+):
+    httpx_mock.add_response(json=store_schema_json)
+    httpx_mock.add_response(json={"data": {"login": "token-123"}})
+
+    proxy_schema = ProxySchema()
+    proxy_schema.add_remote_schema("http://graphql.example.com/store/")
+    proxy_schema.get_final_schema()
+    root_value = await proxy_schema.root_resolver(
+        {},
+        "DoLogin",
+        {"username": "john", "password": "secret"},
+        parse(
+            """
+            mutation DoLogin($username: String!, $password: String!) {
+              login(username: $username, password: $password)
+            }
+            """
+        ),
+    )
+
+    assert root_value == {"login": "token-123"}
+
+    upstream = httpx_mock.get_requests(url="http://graphql.example.com/store/")[-1]
+    payload = json.loads(upstream.content.decode())
+    assert "mutation DoLogin" in payload["query"]
+    assert payload["variables"] == {"username": "john", "password": "secret"}
+
+
+@pytest.mark.asyncio
 async def test_root_value_for_remote_schema_fields_is_retrieved_from_upstream(
     httpx_mock, schema_json
 ):

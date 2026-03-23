@@ -74,3 +74,18 @@ def test_copy_interface_returns_new_interface_without_excluded_arg():
     assert isinstance(copied_type, GraphQLInterfaceType)
     assert copied_type is not graphql_type
     assert "arg1" not in copied_type.fields["fieldA"].args
+
+
+def test_copy_interface_preserves_resolve_type():
+    def resolve_type(*_):
+        return "TypeName"
+
+    graphql_type = GraphQLInterfaceType(
+        name="TypeName",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+        resolve_type=resolve_type,
+    )
+
+    copied_type = copy_interface({}, graphql_type)
+
+    assert copied_type.resolve_type is resolve_type

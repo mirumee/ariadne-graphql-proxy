@@ -157,3 +157,22 @@ def test_merge_objects_returns_object_with_merged_implemented_interfaces():
         "TestInterface1",
         "TestInterface2",
     }
+
+
+def test_merge_objects_preserves_is_type_of():
+    def is_type_of(*_):
+        return True
+
+    object1 = GraphQLObjectType(
+        name="TestType",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+        is_type_of=is_type_of,
+    )
+    object2 = GraphQLObjectType(
+        name="TestType",
+        fields={"fieldA": GraphQLField(type_=GraphQLString)},
+    )
+
+    merged_object = merge_objects(merged_types={}, object1=object1, object2=object2)
+
+    assert merged_object.is_type_of is is_type_of

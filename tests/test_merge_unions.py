@@ -147,3 +147,31 @@ def test_merge_unions_raises_type_error_for_not_matching_descriptions():
             union1,
             union2,
         )
+
+
+def test_merge_unions_preserves_resolve_type():
+    def resolve_type(*_):
+        return "Type1"
+
+    union1 = GraphQLUnionType(
+        name="TestUnion",
+        types=(type1, type2),
+        resolve_type=resolve_type,
+    )
+    union2 = GraphQLUnionType(
+        name="TestUnion",
+        types=(type3, type4),
+    )
+
+    merged_union = merge_unions(
+        {
+            "Type1": merged_type1,
+            "Type2": merged_type2,
+            "Type3": merged_type3,
+            "Type4": merged_type4,
+        },
+        union1,
+        union2,
+    )
+
+    assert merged_union.resolve_type is resolve_type

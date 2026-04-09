@@ -126,11 +126,14 @@ def merge_enums(enum1: GraphQLEnumType, enum2: GraphQLEnumType) -> GraphQLEnumTy
     extensions = enum1.extensions.copy()
     extensions.update(**enum2.extensions.copy())
 
-    return GraphQLEnumType(
-        name=enum1.name,
-        values=merge_enums_values(enum1, enum2),
-        description=enum1.description or enum2.description,
-        extensions=extensions,
+    return cast(
+        GraphQLEnumType,
+        GraphQLEnumType(
+            name=enum1.name,
+            values=merge_enums_values(enum1, enum2),
+            description=enum1.description or enum2.description,
+            extensions=extensions,
+        ),
     )
 
 
@@ -257,15 +260,19 @@ def merge_objects(
     extensions = object1.extensions.copy()
     extensions.update(**object2.extensions.copy())
 
-    return GraphQLObjectType(
-        name=object1.name,
-        fields=fields_thunk,
-        interfaces=interfaces_thunk,
-        is_type_of=object1.is_type_of or object2.is_type_of,
-        description=object1.description or object2.description,
-        extensions=extensions,
-        ast_node=object1.ast_node or object2.ast_node,
-        extension_ast_nodes=object1.extension_ast_nodes or object2.extension_ast_nodes,
+    return cast(
+        GraphQLObjectType,
+        GraphQLObjectType(
+            name=object1.name,
+            fields=fields_thunk,
+            interfaces=interfaces_thunk,
+            is_type_of=object1.is_type_of or object2.is_type_of,
+            description=object1.description or object2.description,
+            extensions=extensions,
+            ast_node=object1.ast_node or object2.ast_node,
+            extension_ast_nodes=object1.extension_ast_nodes
+            or object2.extension_ast_nodes,
+        ),
     )
 
 
@@ -448,11 +455,14 @@ def merge_inputs(
                 )
         return merged_fields
 
-    return GraphQLInputObjectType(
-        name=input1.name,
-        fields=thunk,
-        description=input1.description or input2.description,
-        out_type=out_type_1 or out_type_2,
+    return cast(
+        GraphQLInputObjectType,
+        GraphQLInputObjectType(
+            name=input1.name,
+            fields=thunk,
+            description=input1.description or input2.description,
+            out_type=out_type_1 or out_type_2,
+        ),
     )
 
 
@@ -550,13 +560,16 @@ def merge_scalars(
     extensions = scalar1.extensions.copy()
     extensions.update(**scalar2.extensions.copy())
 
-    return GraphQLScalarType(
-        name=scalar1.name,
-        description=scalar1.description or scalar2.description,
-        specified_by_url=scalar1.specified_by_url or scalar2.specified_by_url,
-        extensions=extensions,
-        ast_node=scalar1.ast_node,
-        extension_ast_nodes=scalar1.extension_ast_nodes,
+    return cast(
+        GraphQLScalarType,
+        GraphQLScalarType(
+            name=scalar1.name,
+            description=scalar1.description or scalar2.description,
+            specified_by_url=scalar1.specified_by_url or scalar2.specified_by_url,
+            extensions=extensions,
+            ast_node=scalar1.ast_node,
+            extension_ast_nodes=scalar1.extension_ast_nodes,
+        ),
     )
 
 
@@ -613,16 +626,19 @@ def merge_interfaces(
     extensions = interface1.extensions.copy()
     extensions.update(**interface2.extensions.copy())
 
-    return GraphQLInterfaceType(
-        name=interface1.name,
-        fields=fields_thunk,
-        interfaces=interfaces_thunk,
-        resolve_type=interface1.resolve_type or interface2.resolve_type,
-        description=interface1.description or interface2.description,
-        extensions=extensions,
-        ast_node=interface1.ast_node or interface2.ast_node,
-        extension_ast_nodes=(
-            interface1.extension_ast_nodes or interface2.extension_ast_nodes
+    return cast(
+        GraphQLInterfaceType,
+        GraphQLInterfaceType(
+            name=interface1.name,
+            fields=fields_thunk,
+            interfaces=interfaces_thunk,
+            resolve_type=interface1.resolve_type or interface2.resolve_type,
+            description=interface1.description or interface2.description,
+            extensions=extensions,
+            ast_node=interface1.ast_node or interface2.ast_node,
+            extension_ast_nodes=(
+                interface1.extension_ast_nodes or interface2.extension_ast_nodes
+            ),
         ),
     )
 
@@ -657,12 +673,16 @@ def merge_unions(
     extensions = union1.extensions.copy()
     extensions.update(**union2.extensions.copy())
 
-    return GraphQLUnionType(
-        name=union1.name,
-        types=thunk,
-        resolve_type=union1.resolve_type or union2.resolve_type,
-        description=union1.description or union2.description,
-        extensions=extensions,
-        ast_node=union1.ast_node or union2.ast_node,
-        extension_ast_nodes=union1.extension_ast_nodes or union2.extension_ast_nodes,
+    return cast(
+        GraphQLUnionType,
+        GraphQLUnionType(
+            name=union1.name,
+            types=thunk,
+            resolve_type=union1.resolve_type or union2.resolve_type,
+            description=union1.description or union2.description,
+            extensions=extensions,
+            ast_node=union1.ast_node or union2.ast_node,
+            extension_ast_nodes=union1.extension_ast_nodes
+            or union2.extension_ast_nodes,
+        ),
     )

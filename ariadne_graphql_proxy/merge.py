@@ -126,7 +126,7 @@ def merge_enums(enum1: GraphQLEnumType, enum2: GraphQLEnumType) -> GraphQLEnumTy
     extensions = enum1.extensions.copy()
     extensions.update(**enum2.extensions.copy())
 
-    return GraphQLEnumType(
+    return GraphQLEnumType(  # ty: ignore[invalid-return-type]
         name=enum1.name,
         values=merge_enums_values(enum1, enum2),
         description=enum1.description or enum2.description,
@@ -257,7 +257,7 @@ def merge_objects(
     extensions = object1.extensions.copy()
     extensions.update(**object2.extensions.copy())
 
-    return GraphQLObjectType(
+    return GraphQLObjectType(  # ty: ignore[invalid-return-type]
         name=object1.name,
         fields=fields_thunk,
         interfaces=interfaces_thunk,
@@ -448,7 +448,7 @@ def merge_inputs(
                 )
         return merged_fields
 
-    return GraphQLInputObjectType(
+    return GraphQLInputObjectType(  # ty: ignore[invalid-return-type]
         name=input1.name,
         fields=thunk,
         description=input1.description or input2.description,
@@ -550,7 +550,7 @@ def merge_scalars(
     extensions = scalar1.extensions.copy()
     extensions.update(**scalar2.extensions.copy())
 
-    return GraphQLScalarType(
+    return GraphQLScalarType(  # ty: ignore[invalid-return-type]
         name=scalar1.name,
         description=scalar1.description or scalar2.description,
         specified_by_url=scalar1.specified_by_url or scalar2.specified_by_url,
@@ -613,7 +613,7 @@ def merge_interfaces(
     extensions = interface1.extensions.copy()
     extensions.update(**interface2.extensions.copy())
 
-    return GraphQLInterfaceType(
+    return GraphQLInterfaceType(  # ty: ignore[invalid-return-type]
         name=interface1.name,
         fields=fields_thunk,
         interfaces=interfaces_thunk,
@@ -657,7 +657,7 @@ def merge_unions(
     extensions = union1.extensions.copy()
     extensions.update(**union2.extensions.copy())
 
-    return GraphQLUnionType(
+    return GraphQLUnionType(  # ty: ignore[invalid-return-type]
         name=union1.name,
         types=thunk,
         resolve_type=union1.resolve_type or union2.resolve_type,

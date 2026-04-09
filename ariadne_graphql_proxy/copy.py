@@ -786,13 +786,13 @@ def copy_union(
         )
 
     return GraphQLUnionType(  # ty: ignore[invalid-return-type]
-            name=union_type.name,
-            types=thunk,
-            resolve_type=union_type.resolve_type,
-            description=union_type.description,
-            extensions=union_type.extensions,
-            ast_node=union_type.ast_node,
-            extension_ast_nodes=union_type.extension_ast_nodes,
+        name=union_type.name,
+        types=thunk,
+        resolve_type=union_type.resolve_type,
+        description=union_type.description,
+        extensions=union_type.extensions,
+        ast_node=union_type.ast_node,
+        extension_ast_nodes=union_type.extension_ast_nodes,
     )
 
 

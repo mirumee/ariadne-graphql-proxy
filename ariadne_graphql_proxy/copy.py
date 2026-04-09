@@ -760,18 +760,15 @@ def copy_interface(
     def interfaces_thunk():
         return [new_types[i.name] for i in interface_type.interfaces]
 
-    return cast(
-        GraphQLInterfaceType,
-        GraphQLInterfaceType(
-            name=interface_type.name,
-            fields=fields_thunk,
-            interfaces=interfaces_thunk,
-            resolve_type=interface_type.resolve_type,
-            description=interface_type.description,
-            extensions=interface_type.extensions,
-            ast_node=interface_type.ast_node,
-            extension_ast_nodes=interface_type.extension_ast_nodes,
-        ),
+    return GraphQLInterfaceType(  # ty: ignore[invalid-return-type]
+        name=interface_type.name,
+        fields=fields_thunk,
+        interfaces=interfaces_thunk,
+        resolve_type=interface_type.resolve_type,
+        description=interface_type.description,
+        extensions=interface_type.extensions,
+        ast_node=interface_type.ast_node,
+        extension_ast_nodes=interface_type.extension_ast_nodes,
     )
 
 
@@ -788,9 +785,7 @@ def copy_union(
             if subtype.name not in types_to_exclude
         )
 
-    return cast(
-        GraphQLUnionType,
-        GraphQLUnionType(
+    return GraphQLUnionType(  # ty: ignore[invalid-return-type]
             name=union_type.name,
             types=thunk,
             resolve_type=union_type.resolve_type,
@@ -798,7 +793,6 @@ def copy_union(
             extensions=union_type.extensions,
             ast_node=union_type.ast_node,
             extension_ast_nodes=union_type.extension_ast_nodes,
-        ),
     )
 
 
